@@ -6,6 +6,7 @@ use App\Http\Controllers\DreamPassController;
 use App\Http\Controllers\DreamPassRedemptionController;
 use App\Http\Controllers\OpportunityFileController;
 use App\Http\Controllers\RatesEmailController;
+use App\Http\Middleware\CheckAuthenticated;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BulkEmailAttachmentController;
@@ -33,6 +34,14 @@ use App\Http\Controllers\AdditionalController;
 use App\Http\Controllers\AccommodationNoteController;
 use App\Http\Controllers\ReservationController;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+
+
+use App\Http\Controllers\CheckPointController;
+use App\Http\Controllers\GuestController;
+use App\Http\Controllers\GuardController;
+use App\Http\Controllers\PatrolController;
+
+
 
 Route::apiResource('users', UserController::class);
 Route::apiResource('bulk-email-attachments', BulkEmailAttachmentController::class);
@@ -83,3 +92,39 @@ Route::post('/admin/notification', [QuotationController::class, 'sendCreateQuota
 Route::post('/admin/invoice-generate', [QuotationController::class, 'sendGenerateInvoiceNotification']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->withoutMiddleware([\App\Http\Middleware\CheckAuthenticated::class]);
 Route::post('/auth/forgot-password', [AuthController::class, 'sendPasswordReset'])->withoutMiddleware([\App\Http\Middleware\CheckAuthenticated::class]);
+
+
+
+
+//gate system
+Route::apiResource('guests', GuestController::class);
+
+Route::apiResource('check-points', CheckPointController::class);
+
+
+Route::apiResource('guards', GuardController::class);
+
+Route::apiResource('patrols', PatrolController::class);
+
+
+
+//app gate system
+Route::prefix('v1')->group(function () {
+    Route::post('/auth/send-otp', [AuthController::class, 'sendOTP'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::post('/auth/verify-otp', [AuthController::class, 'verifyOTP'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::post('/auth/register', [AuthController::class, 'register'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::post('/auth/login', [AuthController::class, 'login'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotAppPassword'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetAppPassword'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+
+    Route::apiResource('app-patrols', PatrolController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+    Route::post('patrols/{patrol}/scan', [PatrolController::class, 'scan']);
+    Route::patch('patrols/{patrol}/complete', [PatrolController::class, 'complete']);
+
+    Route::apiResource('patrols', PatrolController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::apiResource('guards', GuardController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::apiResource('check-points', CheckPointController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::apiResource('guests', GuestController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+});
