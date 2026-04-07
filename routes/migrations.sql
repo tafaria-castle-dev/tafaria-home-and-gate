@@ -59,4 +59,12 @@ CREATE TABLE dream_pass_souvenir_discounts (
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (dream_pass_id) REFERENCES dream_passes(id) ON DELETE CASCADE,
     UNIQUE KEY unique_discount_per_pass (dream_pass_id)
-);
+);         CREATE TABLE `otps` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `otp` varchar(6) NOT NULL,
+  `expires_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `type` enum('registration','forgotPassword') NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

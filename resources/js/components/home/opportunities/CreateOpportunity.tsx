@@ -262,7 +262,7 @@ const CreateOpportunity: React.FC<CreateOpportunityProps> = ({ setActiveTab, onS
             }
             setFormData((prev) => ({
                 ...prev,
-                name: `${newValue.first_name || ''} ${newValue.last_name || ''}`.trim(),
+                name: [newValue.first_name, newValue.last_name].filter(Boolean).join(' ').trim(),
                 phone: newValue.phone || '',
                 email: newValue.email || '',
                 contact_person_id: newValue.id || '',

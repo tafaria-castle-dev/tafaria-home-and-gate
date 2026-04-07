@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Guest extends Model
+class GuestReservation extends Model
 {
     protected $fillable = [
         'guest_name',
@@ -14,6 +14,8 @@ class Guest extends Model
         'check_in',
         'check_out',
         'contact_id',
+        'car_plate_number',
+        'reservation_number',
         'contact_person_id',
         'phone_number',
         'kids_count',
@@ -22,7 +24,9 @@ class Guest extends Model
         'is_express_check_in',
         'is_express_check_out',
         'type',
+        'entry_type',
         'checked_in_by_user_id',
+        'created_by_user_id',
         'checked_in_by_guard_id',
         'cleared_bills',
         'cleared_bills_by_user_id',
@@ -55,10 +59,14 @@ class Guest extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'checked_in_by_user_id');
     }
+    public function createdByUser()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by_user_id');
+    }
 
     public function checkedInByGuard()
     {
-        return $this->belongsTo(\App\Models\Guard::class, 'checked_in_by_guard_id');
+        return $this->belongsTo(\App\Models\User::class, 'checked_in_by_guard_id');
     }
 
     public function clearedBillsByUser()

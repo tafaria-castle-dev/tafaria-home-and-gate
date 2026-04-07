@@ -1,14 +1,29 @@
 import DreamPasses from '@/components/home/dreamPasses/DreamPasses';
+import GuestsDashboard from '@/components/home/guests/GuestsDashboard';
 import Opportunities from '@/components/home/opportunities/Opportunities';
+import GuestReservations from '@/components/home/reservations/GuestReservations';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from '@inertiajs/react';
-import { BookOpenIcon, FileText, Home, Inbox, Loader2Icon, LogOut, Menu, Phone, Settings2, ShoppingBag, Users, X } from 'lucide-react';
+import {
+    BookOpenIcon,
+    CalendarSearch,
+    FileText,
+    Home,
+    Inbox,
+    Loader2Icon,
+    LogOut,
+    Menu,
+    Phone,
+    Settings2,
+    ShoppingBag,
+    Users,
+    X,
+} from 'lucide-react';
 import { ReactNode, Suspense, useEffect, useState } from 'react';
 import BulkEmails from '../components/home/bulkEmails/BulkEmails';
 import ContactManagement from '../components/home/Contacts';
 import Dashboard from '../components/home/Dashboard';
 import Quotations from '../components/home/Quotations';
-import ReservationManagement from '../components/home/ReservationLookup';
 import Settings from '../components/home/Settings';
 import UserManagement from '../components/home/Users';
 
@@ -47,7 +62,8 @@ export default function Layout() {
                 'opportunities',
                 'dream-passes',
                 'bulk-emails',
-                'reservations-lookup',
+                'reservations',
+                'guests',
             ].includes(tab)
         ) {
             setActiveTab(tab);
@@ -92,11 +108,17 @@ export default function Layout() {
             text: 'Bulk Emails',
             tab: 'bulk-emails',
         },
-        // {
-        //     icon: <CalendarSearch className="h-5 w-5" />,
-        //     text: 'Reservation Lookup',
-        //     tab: 'reservations-lookup',
-        // },
+        {
+            icon: <CalendarSearch className="h-5 w-5" />,
+            text: 'Guests ',
+            tab: 'guests',
+        },
+        {
+            icon: <CalendarSearch className="h-5 w-5" />,
+            text: 'Reservations ',
+            tab: 'reservations',
+        },
+
         {
             icon: <Settings2 className="h-5 w-5" />,
             text: 'Settings',
@@ -196,7 +218,8 @@ export default function Layout() {
                         {activeTab === 'contacts' && <ContactManagement />}
                         {activeTab === 'opportunities' && <Opportunities />}
                         {activeTab === 'bulk-emails' && <BulkEmails />}
-                        {activeTab === 'reservations-lookup' && <ReservationManagement />}
+                        {activeTab === 'reservations' && <GuestReservations />}
+                        {activeTab === 'guests' && <GuestsDashboard />}
                         {activeTab === 'quotations' && <Quotations />}
                         {activeTab === 'dream-passes' && <DreamPasses />}
                     </div>

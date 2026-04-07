@@ -37,7 +37,7 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 
 use App\Http\Controllers\CheckPointController;
-use App\Http\Controllers\GuestController;
+use App\Http\Controllers\GuestReservationController;
 use App\Http\Controllers\GuardController;
 use App\Http\Controllers\PatrolController;
 
@@ -60,7 +60,7 @@ Route::apiResource('bookings', BookingController::class);
 Route::apiResource('quotations', QuotationController::class);
 Route::apiResource('customers', CustomerController::class);
 Route::apiResource('contact-persons', ContactPersonController::class);
-Route::apiResource('contacts', ContactController::class)->withoutMiddleware([\App\Http\Middleware\CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+Route::apiResource('contacts', ContactController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
 Route::apiResource('posts', PostController::class);
 Route::apiResource('packages', PackageController::class);
 Route::apiResource('corporate-room-settings', CorporateRoomSettingController::class);
@@ -90,15 +90,18 @@ Route::post('/admin/approve-quotation', [QuotationController::class, 'approveQuo
 Route::post('/admin/draft-notification', [QuotationController::class, 'sendCreateDraftNotification']);
 Route::post('/admin/notification', [QuotationController::class, 'sendCreateQuotationNotification']);
 Route::post('/admin/invoice-generate', [QuotationController::class, 'sendGenerateInvoiceNotification']);
-Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->withoutMiddleware([\App\Http\Middleware\CheckAuthenticated::class]);
-Route::post('/auth/forgot-password', [AuthController::class, 'sendPasswordReset'])->withoutMiddleware([\App\Http\Middleware\CheckAuthenticated::class]);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->withoutMiddleware([CheckAuthenticated::class]);
+Route::post('/auth/forgot-password', [AuthController::class, 'sendPasswordReset'])->withoutMiddleware([CheckAuthenticated::class]);
 
 
 
 
 //gate system
-Route::apiResource('guests', GuestController::class);
 
+
+Route::get('/guest-reservations/aggregations', [GuestReservationController::class, 'aggregations']);
+Route::patch('/guest-reservations/{guestReservation}/check-out', [PatrolController::class, 'checkOut']);
+Route::apiResource('guest-reservations', GuestReservationController::class);
 Route::apiResource('check-points', CheckPointController::class);
 
 
@@ -126,5 +129,5 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('patrols', PatrolController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
     Route::apiResource('guards', GuardController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
     Route::apiResource('check-points', CheckPointController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
-    Route::apiResource('guests', GuestController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::apiResource('guest-reservations', GuestReservationController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
 });

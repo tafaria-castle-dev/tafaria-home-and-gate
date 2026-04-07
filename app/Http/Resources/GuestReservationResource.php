@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class GuestResource extends JsonResource
+class GuestReservationResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -28,9 +28,12 @@ class GuestResource extends JsonResource
             'is_express_check_in' => $this->is_express_check_in,
             'is_express_check_out' => $this->is_express_check_out,
             'type' => $this->type,
+            'entry_type' => $this->entry_type,
+            'reservation_number' => $this->reservation_number,
             'checked_in_by_user_id' => $this->checked_in_by_user_id,
             'checked_in_by_guard_id' => $this->checked_in_by_guard_id,
             'checked_in_by_user' => $this->whenLoaded('checkedInByUser'),
+            'created_by_user' => $this->whenLoaded('createdByUser'),
             'checked_in_by_guard' => $this->whenLoaded('checkedInByGuard'),
             'cleared_bills' => $this->cleared_bills,
             'cleared_bills_by_user_id' => $this->cleared_bills_by_user_id,
