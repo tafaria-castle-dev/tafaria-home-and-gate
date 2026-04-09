@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { SECTIONS } from './CreateReservation';
 
 interface ViewGuestReservationsProps {
     setActiveTab: (tab: string) => void;
@@ -58,6 +59,7 @@ interface GuestReservation {
     contact_person_id?: string;
     phone_number?: string;
     kids_count?: number;
+    infants_count?: number;
     adults_count?: number;
     dream_pass_code?: string;
     is_express_check_in?: boolean;
@@ -76,19 +78,6 @@ interface GuestReservation {
     cleared_bills_by_user?: { id: string; name: string };
     cleared_by_house_keeping_user?: { id: string; name: string };
 }
-
-const SECTIONS = [
-    { value: 'office', label: 'Office' },
-    { value: 'conference_room', label: 'Conference Room' },
-    { value: 'executive_suite', label: 'Executive Suite' },
-    { value: 'lobby', label: 'Lobby' },
-    { value: 'restaurant', label: 'Restaurant' },
-    { value: 'spa', label: 'Spa & Wellness' },
-    { value: 'pool', label: 'Pool Area' },
-    { value: 'rooftop', label: 'Rooftop' },
-    { value: 'garden', label: 'Garden' },
-    { value: 'ballroom', label: 'Ballroom' },
-];
 
 const getSectionLabel = (val: string) => SECTIONS.find((s) => s.value === val)?.label ?? val;
 
@@ -179,6 +168,7 @@ const ViewGuestReservations: React.FC<ViewGuestReservationsProps> = ({ setActive
             setIsFetching(true);
             try {
                 const params = new URLSearchParams({
+                    has_entry: '0',
                     page: page.toString(),
                     ...(filters.section && { section: filters.section }),
                     ...(filters.type && { type: filters.type }),
@@ -620,7 +610,7 @@ const ViewGuestReservations: React.FC<ViewGuestReservationsProps> = ({ setActive
                                     <div>
                                         <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase">Guests</p>
                                         <p className="font-medium text-slate-700">
-                                            {r.adults_count ?? 0}A {r.kids_count ?? 0}K
+                                            {r.adults_count ?? 0}A {r.kids_count ?? 0}K{r.infants_count ?? 0}I
                                         </p>
                                     </div>
                                     <div>

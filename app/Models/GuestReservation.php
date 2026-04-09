@@ -19,6 +19,7 @@ class GuestReservation extends Model
         'contact_person_id',
         'phone_number',
         'kids_count',
+        'infants_count',
         'adults_count',
         'dream_pass_code',
         'is_express_check_in',

@@ -13,19 +13,16 @@ import {
     ChevronRight,
     ClipboardCheck,
     Footprints,
-    LogOut,
     MapPin,
     Phone,
     Receipt,
     RefreshCw,
     Save,
-    ShieldCheck,
     Sparkles,
     Sunset,
     UserCheck,
     UserCog,
     Users,
-    Zap,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -61,11 +58,11 @@ interface AppUser {
     email: string;
 }
 
-const SECTIONS = [
-    { value: 'office', label: 'Office' },
-    { value: 'accommodation', label: 'Accommodation' },
-    { value: 'leisure_activities', label: 'Leisure Activities' },
-    { value: 'meals', label: 'Meals' },
+export const SECTIONS = [
+    { value: 'office', label: 'Office', icon: '🏢' },
+    { value: 'accommodation', label: 'Accommodation', icon: '👑' },
+    { value: 'leisure_activities', label: 'Leisure Activities', icon: '🏖️' },
+    { value: 'meals', label: 'Meals', icon: '🍽️' },
 ];
 
 const generateReservationNumber = (): string => {
@@ -233,6 +230,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
         contact_person_id: '',
         phone_number: '',
         kids_count: '',
+        infants_count: '',
         adults_count: '',
         is_express_check_in: false,
         type: 'corporate' as 'corporate' | 'leisure',
@@ -266,6 +264,21 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
     const [isUsersLoading, setIsUsersLoading] = useState(false);
     const [isFetchingReservation, setIsFetchingReservation] = useState(false);
 
+    const handleTypeChange = useCallback((newType: 'corporate' | 'leisure') => {
+        setFormData((prev) => ({
+            ...prev,
+            type: newType,
+            // Resetting contact fields
+            contact_id: '',
+            contact_person_id: '',
+            phone_number: '',
+            guest_name: '',
+            selectedContact: null,
+            selectedContactPerson: null,
+        }));
+        setContactSearchQuery('');
+        setContactPersonSearchQuery('');
+    }, []);
     useEffect(() => {
         if (!isAuthenticated) window.location.href = '/login';
     }, [isAuthenticated]);
@@ -319,6 +332,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                     phone_number: guestData.phone_number || '',
                     kids_count: guestData.kids_count?.toString() || '',
                     adults_count: guestData.adults_count?.toString() || '',
+                    infants_count: guestData.infants_count?.toString() || '',
                     is_express_check_in: guestData.is_express_check_in || false,
                     type: guestData.type || 'corporate',
                     entry_type: guestData.entry_type || 'walk_in',
@@ -414,6 +428,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
             contact_person_id: '',
             phone_number: '',
             kids_count: '',
+            infants_count: '',
             adults_count: '',
             is_express_check_in: false,
             type: 'corporate',
@@ -475,6 +490,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
             contact_person_id: formData.contact_person_id || null,
             phone_number: formData.phone_number || null,
             kids_count: formData.kids_count ? parseInt(formData.kids_count) : 0,
+            infants_count: formData.infants_count ? parseInt(formData.infants_count) : 0,
             adults_count: formData.adults_count ? parseInt(formData.adults_count) : 1,
             is_express_check_in: formData.is_express_check_in,
             is_express_check_out: formData.is_express_check_out,
@@ -602,7 +618,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.97 }}
                                             type="button"
-                                            onClick={() => setFormData((prev) => ({ ...prev, type: t }))}
+                                            onClick={() => handleTypeChange(t)}
                                             className={`flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all duration-200 ${
                                                 formData.type === t
                                                     ? 'border-[#93723c]/50 bg-gradient-to-b from-[#93723c]/30 to-orange-50 shadow-sm'
@@ -732,11 +748,23 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                                     />
                                 </div>
                                 <div>
-                                    <FieldLabel icon={<Baby className="h-3.5 w-3.5" />} label="Kids" />
+                                    <FieldLabel icon={<Baby className="h-3.5 w-3.5" />} label="Kids(Age 4-11)" />
                                     <input
                                         type="number"
                                         name="kids_count"
                                         value={formData.kids_count}
+                                        onChange={handleChange}
+                                        min={0}
+                                        placeholder="0"
+                                        className={inputClass}
+                                    />
+                                </div>
+                                <div>
+                                    <FieldLabel icon={<Baby className="h-3.5 w-3.5" />} label="Infants(Age 0-3)" />
+                                    <input
+                                        type="number"
+                                        name="infants_count"
+                                        value={formData.infants_count}
                                         onChange={handleChange}
                                         min={0}
                                         placeholder="0"
@@ -827,7 +855,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                         </div>
                     </SectionCard>
 
-                    <SectionCard
+                    {/* <SectionCard
                         title="Check-In Options"
                         icon={<ShieldCheck className="h-4 w-4" />}
                         delay={0.2}
@@ -860,7 +888,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                                 )}
                             </div>
                         </div>
-                    </SectionCard>
+                    </SectionCard> */}
 
                     {isEditMode && (
                         <SectionCard

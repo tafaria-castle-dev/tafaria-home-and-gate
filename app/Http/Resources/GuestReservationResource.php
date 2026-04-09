@@ -23,6 +23,7 @@ class GuestReservationResource extends JsonResource
             'contact_person' => $this->whenLoaded('contactPerson'),
             'phone_number' => $this->phone_number,
             'kids_count' => $this->kids_count,
+            'infants_count' => $this->infants_count,
             'adults_count' => $this->adults_count,
             'dream_pass_code' => $this->dream_pass_code,
             'is_express_check_in' => $this->is_express_check_in,

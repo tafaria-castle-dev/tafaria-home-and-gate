@@ -100,7 +100,7 @@ Route::post('/auth/forgot-password', [AuthController::class, 'sendPasswordReset'
 
 
 Route::get('/guest-reservations/aggregations', [GuestReservationController::class, 'aggregations']);
-Route::patch('/guest-reservations/{guestReservation}/check-out', [PatrolController::class, 'checkOut']);
+Route::patch('/guest-reservations/{guestReservation}/check-out', [GuestReservationController::class, 'checkOut']);
 Route::apiResource('guest-reservations', GuestReservationController::class);
 Route::apiResource('check-points', CheckPointController::class);
 
@@ -129,5 +129,11 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('patrols', PatrolController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
     Route::apiResource('guards', GuardController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
     Route::apiResource('check-points', CheckPointController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+    Route::get('/guest-reservations/aggregations', [GuestReservationController::class, 'aggregations']);
+    Route::patch('/guest-reservations/{guestReservation}/check-out', [GuestReservationController::class, 'checkOut'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    Route::patch('/guest-reservations/{guestReservation}/check-in', [GuestReservationController::class, 'checkIn'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
     Route::apiResource('guest-reservations', GuestReservationController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+
 });

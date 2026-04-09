@@ -8,6 +8,7 @@ use App\Models\GuestReservation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Log;
 
 class GuestReservationController extends Controller
 {
@@ -198,6 +199,7 @@ class GuestReservationController extends Controller
             'contact_person_id' => 'nullable|exists:contact_persons,id',
             'phone_number' => 'nullable|string|max:255',
             'kids_count' => 'required|integer|min:0',
+            'infants_count' => 'required|integer|min:0',
             'adults_count' => 'required|integer|min:1',
             'dream_pass_code' => 'nullable|string|max:255',
             'is_express_check_in' => 'boolean',
@@ -238,6 +240,7 @@ class GuestReservationController extends Controller
             'contact_person_id' => 'nullable|exists:contact_persons,id',
             'phone_number' => 'nullable|string|max:255',
             'kids_count' => 'sometimes|integer|min:0',
+            'infants_count' => 'sometimes|integer|min:0',
             'adults_count' => 'sometimes|integer|min:1',
             'dream_pass_code' => 'nullable|string|max:255',
             'is_express_check_in' => 'boolean',
@@ -265,13 +268,36 @@ class GuestReservationController extends Controller
 
     public function checkOut(Request $request, GuestReservation $guestReservation)
     {
+
+
         if ($guestReservation->exit_time) {
             return response()->json(['message' => 'Guest has already been checked out.'], 422);
         }
+        Log::info('Checking out guest reservation:', ['id' => $guestReservation->id]);
         $guestReservation->update([
             'exit_time' => now(),
-            'is_express_check_out' => $request->boolean('is_express', false),
+
         ]);
+        $guestReservation->load($this->relations);
+
+        return new GuestReservationResource($guestReservation);
+    }
+
+    public function checkIn(Request $request, GuestReservation $guestReservation)
+    {
+        if ($guestReservation->entry_time) {
+            return response()->json(['message' => 'Guest has already been checked in.'], 422);
+        }
+
+        $data = $request->validate([
+            'checked_in_by_guard_id' => 'nullable|exists:users,id',
+        ]);
+
+        $guestReservation->update([
+            'entry_time' => now(),
+            'checked_in_by_guard_id' => $data['checked_in_by_guard_id'] ?? null,
+        ]);
+
         $guestReservation->load($this->relations);
 
         return new GuestReservationResource($guestReservation);
@@ -296,6 +322,18 @@ class GuestReservationController extends Controller
 
         if ($request->filled('entry_type')) {
             $query->where('entry_type', $request->entry_type);
+        }
+
+        if ($request->has('has_entry')) {
+            $request->boolean('has_entry')
+                ? $query->whereNotNull('entry_time')
+                : $query->whereNull('entry_time');
+        }
+
+        if ($request->has('has_exit')) {
+            $request->boolean('has_exit')
+                ? $query->whereNotNull('exit_time')
+                : $query->whereNull('exit_time');
         }
 
         if ($request->filled('status')) {

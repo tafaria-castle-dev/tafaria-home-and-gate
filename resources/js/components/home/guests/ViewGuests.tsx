@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { SECTIONS } from '../reservations/CreateReservation';
 
 interface GuestReservation {
     id: string;
@@ -91,19 +92,6 @@ interface Aggregations {
     express: number;
     vip: number;
 }
-
-const SECTIONS = [
-    { value: 'office', label: 'Office', icon: '🏢' },
-    { value: 'conference_room', label: 'Conference Room', icon: '🎤' },
-    { value: 'executive_suite', label: 'Executive Suite', icon: '👑' },
-    { value: 'lobby', label: 'Lobby', icon: '🚪' },
-    { value: 'restaurant', label: 'Restaurant', icon: '🍽️' },
-    { value: 'spa', label: 'Spa & Wellness', icon: '💆' },
-    { value: 'pool', label: 'Pool Area', icon: '🏊' },
-    { value: 'rooftop', label: 'Rooftop', icon: '🌆' },
-    { value: 'garden', label: 'Garden', icon: '🌿' },
-    { value: 'ballroom', label: 'Ballroom', icon: '✨' },
-];
 
 const getSectionLabel = (val: string) => SECTIONS.find((s) => s.value === val)?.label ?? val.replace(/_/g, ' ');
 const getSectionIcon = (val: string) => SECTIONS.find((s) => s.value === val)?.icon ?? '📍';
@@ -196,7 +184,7 @@ export default function ViewGuests() {
         async (page = 1) => {
             setIsFetching(true);
             try {
-                const params: Record<string, string> = { page: page.toString(), per_page: '25' };
+                const params: Record<string, string> = { page: page.toString(), per_page: '25', has_entry: '1' };
                 if (filters.section) params.section = filters.section;
                 if (filters.type) params.type = filters.type;
                 if (filters.status) params.status = filters.status;
@@ -550,7 +538,7 @@ export default function ViewGuests() {
                         { key: 'checked_out', label: 'Checked Out', status: 'checked_out' },
                         { key: 'overdue', label: '⚠ Overdue', status: 'overdue' },
                         { key: 'bills_pending', label: 'Bills Pending', status: 'checked_in', bills_status: 'pending' },
-                        { key: 'vip', label: '★ VIP ', status: 'vip' },
+                        // { key: 'vip', label: '★ VIP ', status: 'vip' },
                         { key: 'all', label: 'All Guests', status: '' },
                     ].map((q) => (
                         <button
