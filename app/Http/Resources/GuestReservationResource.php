@@ -12,6 +12,7 @@ class GuestReservationResource extends JsonResource
         return [
             'id' => $this->id,
             'guest_name' => $this->guest_name,
+            'visitor_type' => $this->visitor_type,
             'section' => $this->section,
             'entry_time' => $this->entry_time,
             'exit_time' => $this->exit_time,

@@ -64,6 +64,11 @@ export const SECTIONS = [
     { value: 'leisure_activities', label: 'Leisure Activities', icon: '🏖️' },
     { value: 'meals', label: 'Meals', icon: '🍽️' },
 ];
+export const VISITOR_TYPES = [
+    { value: 'Visitor', label: 'Visitor', icon: '👤' },
+    { value: 'Contractor', label: 'Contractor', icon: '👷' },
+    { value: 'Resident', label: 'Resident', icon: '🏠' },
+];
 
 const generateReservationNumber = (): string => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -221,6 +226,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
     const isEditMode = !!reservationId;
     const [formData, setFormData] = useState({
         guest_name: '',
+        visitor_type: 'Visitor',
         section: '',
         check_in: '',
         check_out: '',
@@ -322,6 +328,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                 setFormData((prev) => ({
                     ...prev,
                     guest_name: guestData.guest_name || '',
+                    visitor_type: guestData.visitor_type || 'Visitor',
                     section: guestData.section || '',
                     check_in: guestData.check_in ? guestData.check_in.substring(0, 10) : '',
                     check_out: guestData.check_out ? guestData.check_out.substring(0, 10) : '',
@@ -419,6 +426,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
     const resetForm = () => {
         setFormData({
             guest_name: '',
+            visitor_type: '',
             section: '',
             check_in: '',
             check_out: '',
@@ -481,6 +489,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
 
         const payload: Record<string, any> = {
             guest_name: formData.guest_name,
+            visitor_type: formData.visitor_type,
             section: formData.section,
             check_in: formData.check_in,
             check_out: formData.check_out,
@@ -824,6 +833,20 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                                         {SECTIONS.map((s) => (
                                             <option key={s.value} value={s.value}>
                                                 {s.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronRight className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400" />
+                                </div>
+                            </div>
+                            <div>
+                                <FieldLabel icon={<MapPin className="h-3.5 w-3.5" />} label="Visitor Type" required />
+                                <div className="relative">
+                                    <select name="visitor_type" value={formData.visitor_type} onChange={handleChange} className={selectClass}>
+                                        <option value="">Select a visitor type</option>
+                                        {VISITOR_TYPES.map((vt) => (
+                                            <option key={vt.value} value={vt.value}>
+                                                {vt.label}
                                             </option>
                                         ))}
                                     </select>

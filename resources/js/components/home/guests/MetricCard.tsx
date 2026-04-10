@@ -1,6 +1,12 @@
 import { cn } from '@/lib/utils';
 import { LucideIcon, TrendingDown, TrendingUp } from 'lucide-react';
 
+interface BreakdownItem {
+    label: string;
+    value: number;
+    color: string;
+}
+
 interface MetricCardProps {
     title: string;
     value: string | number;
@@ -9,17 +15,18 @@ interface MetricCardProps {
     trend?: { value: number; isPositive: boolean };
     variant?: 'default' | 'primary' | 'secondary' | 'warning' | 'destructive' | 'success';
     pulse?: boolean;
+    breakdown?: BreakdownItem[];
     onClick?: () => void;
 }
 
-export function MetricCard({ title, value, subtitle, icon: Icon, trend, variant = 'default', pulse = false, onClick }: MetricCardProps) {
+export function MetricCard({ title, value, subtitle, icon: Icon, trend, variant = 'default', pulse = false, breakdown, onClick }: MetricCardProps) {
     const styles = {
-        default: { iconBg: 'bg-muted', iconColor: 'text-muted-foreground', valueColor: 'text-foreground', bar: 'bg-muted-foreground/30' },
-        primary: { iconBg: 'bg-primary/10', iconColor: 'text-primary', valueColor: 'text-primary', bar: 'bg-primary/40' },
-        secondary: { iconBg: 'bg-secondary/10', iconColor: 'text-secondary', valueColor: 'text-secondary', bar: 'bg-secondary/40' },
-        warning: { iconBg: 'bg-amber-500/10', iconColor: 'text-amber-500', valueColor: 'text-amber-500', bar: 'bg-amber-500/40' },
-        destructive: { iconBg: 'bg-destructive/10', iconColor: 'text-destructive', valueColor: 'text-destructive', bar: 'bg-destructive/40' },
-        success: { iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-600', valueColor: 'text-emerald-600', bar: 'bg-emerald-500/40' },
+        default:     { iconBg: 'bg-muted',           iconColor: 'text-muted-foreground', valueColor: 'text-foreground',   bar: 'bg-muted-foreground/30' },
+        primary:     { iconBg: 'bg-primary/10',       iconColor: 'text-primary',          valueColor: 'text-primary',      bar: 'bg-primary/40' },
+        secondary:   { iconBg: 'bg-secondary/10',     iconColor: 'text-secondary',        valueColor: 'text-secondary',    bar: 'bg-secondary/40' },
+        warning:     { iconBg: 'bg-amber-500/10',     iconColor: 'text-amber-500',        valueColor: 'text-amber-500',    bar: 'bg-amber-500/40' },
+        destructive: { iconBg: 'bg-destructive/10',   iconColor: 'text-destructive',      valueColor: 'text-destructive',  bar: 'bg-destructive/40' },
+        success:     { iconBg: 'bg-emerald-500/10',   iconColor: 'text-emerald-600',      valueColor: 'text-emerald-600',  bar: 'bg-emerald-500/40' },
     }[variant];
 
     return (
@@ -43,14 +50,20 @@ export function MetricCard({ title, value, subtitle, icon: Icon, trend, variant 
                     <p className={cn('font-serif text-[2.2rem] leading-none font-bold tracking-tight', styles.valueColor)}>{value}</p>
                     {subtitle && <p className="mt-1.5 text-xs text-muted-foreground">{subtitle}</p>}
                     {trend && (
-                        <div
-                            className={cn(
-                                'mt-2 flex items-center gap-1.5 text-[11px] font-bold',
-                                trend.isPositive ? 'text-emerald-600' : 'text-destructive',
-                            )}
-                        >
+                        <div className={cn('mt-2 flex items-center gap-1.5 text-[11px] font-bold', trend.isPositive ? 'text-emerald-600' : 'text-destructive')}>
                             {trend.isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                             <span>{Math.abs(trend.value)}% vs yesterday</span>
+                        </div>
+                    )}
+                    {breakdown && breakdown.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                            {breakdown.map((item) => (
+                                <div key={item.label} className="flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1">
+                                    <span className={cn('h-1.5 w-1.5 rounded-full', item.color)} />
+                                    <span className="text-[10px] font-semibold text-muted-foreground">{item.label}</span>
+                                    <span className="text-[10px] font-bold text-foreground">{item.value}</span>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
