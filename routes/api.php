@@ -5,6 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DreamPassController;
 use App\Http\Controllers\DreamPassRedemptionController;
 use App\Http\Controllers\OpportunityFileController;
+use App\Http\Controllers\PatrolIncidentController;
+use App\Http\Controllers\PatrolShiftController;
 use App\Http\Controllers\RatesEmailController;
 use App\Http\Middleware\CheckAuthenticated;
 use Illuminate\Support\Facades\Route;
@@ -102,13 +104,35 @@ Route::post('/auth/forgot-password', [AuthController::class, 'sendPasswordReset'
 Route::get('/guest-reservations/aggregations', [GuestReservationController::class, 'aggregations']);
 Route::patch('/guest-reservations/{guestReservation}/check-out', [GuestReservationController::class, 'checkOut']);
 Route::apiResource('guest-reservations', GuestReservationController::class);
+
+Route::post('check-points/{id}/regenerate-qr', [CheckPointController::class, 'regenerateQr']);
 Route::apiResource('check-points', CheckPointController::class);
 
 
 Route::apiResource('guards', GuardController::class);
 
-Route::apiResource('patrols', PatrolController::class);
-
+Route::prefix('patrols')->group(function () {
+    Route::get('/', [PatrolController::class, 'index']);
+    Route::get('/by-guard', [PatrolController::class, 'byGuard']);
+    Route::get('/aggregations', [PatrolController::class, 'aggregations']);
+    Route::post('/start', [PatrolController::class, 'start']);
+    Route::post('/scan-qr', [PatrolController::class, 'scanByQr']);
+    Route::get('/{id}', [PatrolController::class, 'show']);
+    Route::post('/{id}/scan', [PatrolController::class, 'scan']);
+    Route::patch('/{id}/end', [PatrolController::class, 'end']);
+    Route::patch('/{id}/missed', [PatrolController::class, 'markMissed']);
+    Route::delete('/{id}', [PatrolController::class, 'destroy']);
+});
+Route::apiResource('patrol-shifts', PatrolShiftController::class);
+Route::prefix('patrol-incidents')->group(function () {
+    Route::get('/', [PatrolIncidentController::class, 'index']);
+    Route::get('/aggregations', [PatrolIncidentController::class, 'aggregations']);
+    Route::post('/', [PatrolIncidentController::class, 'store']);
+    Route::get('/{id}', [PatrolIncidentController::class, 'show']);
+    Route::patch('/{id}/resolve', [PatrolIncidentController::class, 'resolve']);
+    Route::patch('/{id}/status', [PatrolIncidentController::class, 'updateStatus']);
+    Route::delete('/{id}', [PatrolIncidentController::class, 'destroy']);
+});
 
 
 //app gate system
@@ -121,14 +145,28 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/reset-password', [AuthController::class, 'resetAppPassword'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
 
 
-    Route::apiResource('app-patrols', PatrolController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
 
-    Route::post('patrols/{patrol}/scan', [PatrolController::class, 'scan']);
-    Route::patch('patrols/{patrol}/complete', [PatrolController::class, 'complete']);
+    Route::prefix('patrols')->group(function () {
+        Route::get('/', [PatrolController::class, 'index'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        ;
 
-    Route::apiResource('patrols', PatrolController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
-    Route::apiResource('guards', GuardController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
-    Route::apiResource('check-points', CheckPointController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        Route::post('/start', [PatrolController::class, 'start'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        ;
+        Route::post('/scan-qr', [PatrolController::class, 'scanByQr'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        ;
+        Route::post('/patrol-incidents/report', [PatrolIncidentController::class, 'store'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        Route::get('/{id}', [PatrolController::class, 'show'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        ;
+        Route::patch('/{id}/end', [PatrolController::class, 'end'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        ;
+        Route::patch('/{id}/missed', [PatrolController::class, 'markMissed'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    });
+    Route::prefix('patrol-shifts')->group(function () {
+        Route::get('/', [PatrolShiftController::class, 'index'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+        Route::get('/{id}', [PatrolShiftController::class, 'show'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+    });
+
+
 
     Route::get('/guest-reservations/aggregations', [GuestReservationController::class, 'aggregations']);
     Route::patch('/guest-reservations/{guestReservation}/check-out', [GuestReservationController::class, 'checkOut'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);

@@ -2,51 +2,65 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\CheckPointResource;
 use App\Models\CheckPoint;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class CheckPointController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return CheckPointResource::collection(CheckPoint::all());
+        $query = CheckPoint::query()
+            ->when($request->search, fn($q) => $q
+                ->where('point_name', 'like', "%{$request->search}%")
+                ->orWhere('location', 'like', "%{$request->search}%"))
+            ->orderBy('point_name');
+
+        return response()->json($query->paginate($request->per_page ?? 25));
+    }
+
+    public function show($id)
+    {
+        return response()->json(CheckPoint::findOrFail($id));
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $request->validate([
             'point_name' => 'required|string|max:255',
             'location' => 'required|string|max:255',
+            'qr_link' => 'nullable|string|max:255|unique:check_points,qr_link',
         ]);
 
-        $checkPoint = CheckPoint::create($data);
-
-        return new CheckPointResource($checkPoint);
-    }
-
-    public function show(CheckPoint $checkPoint)
-    {
-        return new CheckPointResource($checkPoint);
-    }
-
-    public function update(Request $request, CheckPoint $checkPoint)
-    {
-        $data = $request->validate([
-            'point_name' => 'sometimes|string|max:255',
-            'location' => 'sometimes|string|max:255',
+        $checkpoint = CheckPoint::create([
+            'point_name' => $request->point_name,
+            'location' => $request->location,
+            'qr_link' => $request->qr_link ?? (string) Str::uuid(),
         ]);
 
-        $checkPoint->update($data);
-
-        return new CheckPointResource($checkPoint);
+        return response()->json($checkpoint, 201);
     }
 
-    public function destroy(CheckPoint $checkPoint)
+    public function update(Request $request, $id)
     {
-        $checkPoint->delete();
+        $request->validate([
+            'point_name' => 'sometimes|required|string|max:255',
+            'location' => 'sometimes|required|string|max:255',
+            'qr_link' => "sometimes|required|string|max:255|unique:check_points,qr_link,{$id}",
+        ]);
 
-        return response()->json(['message' => 'Checkpoint deleted successfully']);
+        $checkpoint = CheckPoint::findOrFail($id);
+        $checkpoint->update($request->only(['point_name', 'location', 'qr_link']));
+
+        return response()->json($checkpoint);
     }
+
+    public function destroy($id)
+    {
+        CheckPoint::findOrFail($id)->delete();
+        return response()->json(['message' => 'Checkpoint deleted successfully.']);
+    }
+
+
 }
+

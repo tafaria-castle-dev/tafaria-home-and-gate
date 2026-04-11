@@ -2,101 +2,198 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\PatrolResource;
-use App\Http\Resources\PatrolCheckpointResource;
-use App\Models\CheckPoint;
 use App\Models\Patrol;
+use App\Models\PatrolShift;
 use App\Models\PatrolCheckpoint;
+use App\Models\CheckPoint;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class PatrolController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $patrols = Patrol::with(['guard', 'patrolCheckpoints.checkPoint'])->latest()->paginate(20);
+        $query = Patrol::with(['patrolGuard', 'shift', 'checkpoints.checkpoint'])
+            ->when($request->guard_id, fn($q) => $q->where('guard_id', $request->guard_id))
+            ->when($request->shift_id, fn($q) => $q->where('shift_id', $request->shift_id))
+            ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->when($request->date, fn($q) => $q->whereDate('started_at', $request->date))
+            ->when($request->date_from, fn($q) => $q->whereDate('started_at', '>=', $request->date_from))
+            ->when($request->date_to, fn($q) => $q->whereDate('started_at', '<=', $request->date_to))
+            ->orderByDesc('started_at');
 
-        return PatrolResource::collection($patrols);
+        return response()->json($query->paginate($request->per_page ?? 25));
     }
 
-    public function store(Request $request)
+    public function show($id)
     {
-        $data = $request->validate([
-            'guard_id' => 'required|exists:guards,id',
-            'status' => 'in:ongoing,completed,missed',
-            'started_at' => 'nullable|date',
-            'ended_at' => 'nullable|date',
+        $patrol = Patrol::with(['patrolGuard', 'shift', 'checkpoints.checkpoint'])->findOrFail($id);
+        return response()->json($patrol);
+    }
+
+    public function start(Request $request)
+    {
+        $request->validate([
+            'guard_id' => 'required|exists:users,id',
+            'shift_id' => 'required|exists:patrol_shifts,id',
         ]);
 
-        $data['started_at'] = $data['started_at'] ?? now();
+        $existing = Patrol::where('guard_id', $request->guard_id)
+            ->where('status', 'ongoing')
+            ->first();
 
-        $patrol = Patrol::create($data);
-        $patrol->load(['guard', 'patrolCheckpoints.checkPoint']);
+        if ($existing) {
+            return response()->json([
+                'message' => 'Guard already has an ongoing patrol.',
+                'patrol' => $existing->load(['shift']),
+            ], 422);
+        }
 
-        return new PatrolResource($patrol);
-    }
-
-    public function show(Patrol $patrol)
-    {
-        $patrol->load(['guard', 'patrolCheckpoints.checkPoint']);
-
-        return new PatrolResource($patrol);
-    }
-
-    public function update(Request $request, Patrol $patrol)
-    {
-        $data = $request->validate([
-            'guard_id' => 'sometimes|exists:guards,id',
-            'status' => 'sometimes|in:ongoing,completed,missed',
-            'started_at' => 'nullable|date',
-            'ended_at' => 'nullable|date',
+        $patrol = Patrol::create([
+            'guard_id' => $request->guard_id,
+            'shift_id' => $request->shift_id,
+            'status' => 'ongoing',
+            'started_at' => now(),
         ]);
 
-        $patrol->update($data);
-        $patrol->load(['guard', 'patrolCheckpoints.checkPoint']);
-
-        return new PatrolResource($patrol);
+        return response()->json($patrol->load(['patrolGuard', 'shift']), 201);
     }
 
-    public function destroy(Patrol $patrol)
+    public function end(Request $request, $id)
     {
-        $patrol->delete();
-
-        return response()->json(['message' => 'Patrol deleted successfully']);
-    }
-
-    public function scan(Request $request, Patrol $patrol)
-    {
-        $data = $request->validate([
-            'check_point_id' => 'required|exists:check_points,id',
-            'scanned_at' => 'nullable|date',
-        ]);
+        $patrol = Patrol::findOrFail($id);
 
         if ($patrol->status !== 'ongoing') {
-            return response()->json(['message' => 'Cannot scan on a patrol that is not ongoing'], 422);
+            return response()->json(['message' => 'Patrol is not currently ongoing.'], 422);
+        }
+
+        $patrol->update([
+            'status' => 'completed',
+            'ended_at' => now(),
+            'notes' => $request->notes,
+        ]);
+
+        return response()->json($patrol->load(['patrolGuard', 'shift', 'checkpoints.checkpoint']));
+    }
+
+    public function scan(Request $request, $id)
+    {
+        $request->validate([
+            'check_point_id' => 'required|exists:check_points,id',
+        ]);
+
+        $patrol = Patrol::findOrFail($id);
+
+        if ($patrol->status !== 'ongoing') {
+            return response()->json(['message' => 'Patrol is not currently ongoing.'], 422);
         }
 
         $scan = PatrolCheckpoint::create([
             'patrol_id' => $patrol->id,
-            'check_point_id' => $data['check_point_id'],
-            'scanned_at' => $data['scanned_at'] ?? now(),
+            'check_point_id' => $request->check_point_id,
+            'scanned_at' => now(),
         ]);
 
-        $scan->load('checkPoint');
-
-        return new PatrolCheckpointResource($scan);
+        return response()->json($scan->load('checkpoint'), 201);
     }
 
-    public function complete(Patrol $patrol)
+    public function scanByQr(Request $request)
     {
-        $patrol->update([
-            'status' => 'completed',
-            'ended_at' => now(),
+        $request->validate([
+            'qr_link' => 'required|string',
+            'guard_id' => 'required|exists:users,id',
         ]);
 
-        $patrol->load(['guard', 'patrolCheckpoints.checkPoint']);
+        $checkpoint = CheckPoint::where('qr_link', $request->qr_link)->first();
 
-        return new PatrolResource($patrol);
+        if (!$checkpoint) {
+            return response()->json(['message' => 'Invalid QR code.'], 404);
+        }
+
+        $patrol = Patrol::where('guard_id', $request->guard_id)
+            ->where('status', 'ongoing')
+            ->latest('started_at')
+            ->first();
+
+        if (!$patrol) {
+            return response()->json(['message' => 'No active patrol found. Please start a patrol first.'], 422);
+        }
+
+        $scan = PatrolCheckpoint::create([
+            'patrol_id' => $patrol->id,
+            'check_point_id' => $checkpoint->id,
+            'scanned_at' => now(),
+        ]);
+
+        return response()->json([
+            'scan' => $scan->load('checkpoint'),
+            'patrol' => $patrol->load(['shift', 'checkpoints.checkpoint']),
+        ], 201);
+    }
+
+    public function byGuard(Request $request)
+    {
+        $filterPatrols = fn($q) => $q
+            ->when($request->date, fn($q) => $q->whereDate('started_at', $request->date))
+            ->when($request->date_from, fn($q) => $q->whereDate('started_at', '>=', $request->date_from))
+            ->when($request->date_to, fn($q) => $q->whereDate('started_at', '<=', $request->date_to))
+            ->when($request->shift_id, fn($q) => $q->where('shift_id', $request->shift_id))
+            ->when($request->status, fn($q) => $q->where('status', $request->status));
+
+        $guards = User::withCount([
+            'patrols as total_patrols' => fn($q) => $filterPatrols($q),
+            'patrols as ongoing_patrols' => fn($q) => $filterPatrols($q)->where('status', 'ongoing'),
+            'patrols as completed_patrols' => fn($q) => $filterPatrols($q)->where('status', 'completed'),
+            'patrols as missed_patrols' => fn($q) => $filterPatrols($q)->where('status', 'missed'),
+        ])
+            ->with([
+                'patrols' => fn($q) => $filterPatrols($q)
+                    ->with(['shift', 'checkpoints.checkpoint'])
+                    ->orderByDesc('started_at')
+            ])
+            ->when($request->guard_id, fn($q) => $q->where('id', $request->guard_id))
+            ->whereHas('patrols', fn($q) => $filterPatrols($q))
+            ->get();
+
+        return response()->json($guards);
+    }
+
+    public function aggregations(Request $request)
+    {
+        $base = Patrol::query()
+            ->when($request->guard_id, fn($q) => $q->where('guard_id', $request->guard_id))
+            ->when($request->shift_id, fn($q) => $q->where('shift_id', $request->shift_id))
+            ->when($request->date, fn($q) => $q->whereDate('started_at', $request->date))
+            ->when($request->date_from, fn($q) => $q->whereDate('started_at', '>=', $request->date_from))
+            ->when($request->date_to, fn($q) => $q->whereDate('started_at', '<=', $request->date_to));
+
+        $ids = (clone $base)->pluck('id');
+
+        return response()->json([
+            'total' => (clone $base)->count(),
+            'ongoing' => (clone $base)->where('status', 'ongoing')->count(),
+            'completed' => (clone $base)->where('status', 'completed')->count(),
+            'missed' => (clone $base)->where('status', 'missed')->count(),
+            'total_checkpoints_scanned' => PatrolCheckpoint::whereIn('patrol_id', $ids)->count(),
+            'guards_on_patrol' => (clone $base)->where('status', 'ongoing')->distinct('guard_id')->count('guard_id'),
+        ]);
+    }
+
+    public function markMissed(Request $request, $id)
+    {
+        $patrol = Patrol::findOrFail($id);
+        $patrol->update(['status' => 'missed', 'notes' => $request->notes]);
+        return response()->json($patrol->load(['patrolGuard', 'shift']));
+    }
+
+    public function destroy($id)
+    {
+        Patrol::findOrFail($id)->delete();
+        return response()->json(['message' => 'Patrol deleted.']);
+    }
+
+    public function shifts()
+    {
+        return response()->json(PatrolShift::orderBy('start_time')->get());
     }
 }

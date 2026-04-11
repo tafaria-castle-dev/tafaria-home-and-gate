@@ -1,6 +1,7 @@
 import DreamPasses from '@/components/home/dreamPasses/DreamPasses';
 import GuestsDashboard from '@/components/home/guests/GuestsDashboard';
 import Opportunities from '@/components/home/opportunities/Opportunities';
+import Patrols from '@/components/home/patrols/Patrols';
 import GuestReservations from '@/components/home/reservations/GuestReservations';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from '@inertiajs/react';
@@ -14,6 +15,7 @@ import {
     LogOut,
     Menu,
     Phone,
+    Radar,
     Settings2,
     ShoppingBag,
     Users,
@@ -64,6 +66,7 @@ export default function Layout() {
                 'bulk-emails',
                 'reservations',
                 'guests',
+                'patrols',
             ].includes(tab)
         ) {
             setActiveTab(tab);
@@ -117,6 +120,11 @@ export default function Layout() {
             icon: <CalendarSearch className="h-5 w-5" />,
             text: 'Reservations ',
             tab: 'reservations',
+        },
+        {
+            icon: <Radar className="h-5 w-5" />,
+            text: 'Patrols ',
+            tab: 'patrols',
         },
 
         {
@@ -220,6 +228,7 @@ export default function Layout() {
                         {activeTab === 'bulk-emails' && <BulkEmails />}
                         {activeTab === 'reservations' && <GuestReservations />}
                         {activeTab === 'guests' && <GuestsDashboard />}
+                        {activeTab === 'patrols' && <Patrols />}
                         {activeTab === 'quotations' && <Quotations />}
                         {activeTab === 'dream-passes' && <DreamPasses />}
                     </div>

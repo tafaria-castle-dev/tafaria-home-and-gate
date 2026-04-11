@@ -111,4 +111,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Reservation::class, 'cleared_by_id');
     }
+
+    public function patrols()
+    {
+        return $this->hasMany(Patrol::class, 'guard_id');
+    }
 }
