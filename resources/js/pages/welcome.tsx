@@ -68,14 +68,14 @@ export default function Welcome({ auth }: WelcomeProps) {
                                             >
                                                 Sign In
                                             </button>
-                                            <button
+                                            {/* <button
                                                 className={`px-3 py-1 text-sm font-semibold md:px-4 md:py-2 md:text-base ${
                                                     isSignUp ? 'border-b-2 border-black text-black' : 'text-gray-500'
                                                 }`}
                                                 onClick={() => setIsSignUp(true)}
                                             >
                                                 Sign Up
-                                            </button>
+                                            </button> */}
                                         </div>
                                         {isSignUp ? (
                                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>

@@ -288,7 +288,7 @@ const PdfRoomTableLeisure: React.FC<RoomTableLeisurePDFProps> = ({ items, formDa
         const totalDiscount = rowsWithThisTax.reduce((sum: number, item: any) => {
             if (item.selectedDiscount) {
                 const itemDiscountAmount =
-                    ((item?.room?.taxable_amount * item.totalCost) / item.room.amount_ksh) *
+                    ((item?.room?.taxable_amount * (item.totalCost - (item.holidaySupplement ?? 0))) / item.room.amount_ksh) *
                     (getDiscountPercentage(item.selectedDiscount) / 100) *
                     item.count;
                 return sum + itemDiscountAmount;
@@ -340,13 +340,15 @@ const PdfRoomTableLeisure: React.FC<RoomTableLeisurePDFProps> = ({ items, formDa
         const count = groupedItem.count;
         const totalAmount = groupedItem.totalCost * count;
 
-        let totalTaxable = ((groupedItem?.room?.taxable_amount * groupedItem.totalCost) / groupedItem.room.amount_ksh) * count;
-
         const totalRate = groupedItem.room?.taxes?.reduce((sum: number, tax: any) => sum + tax.rate, 0) ?? 0;
         const discountRate = getDiscountPercentage(groupedItem.selectedDiscount) / 100 || 0;
-        const discount = Math.round(discountRate * totalAmount);
+        const supplement = groupedItem.isHolidayRow ? (groupedItem.holidaySupplement ?? 0) : 0;
+        const discount = Math.round(discountRate * (totalAmount - supplement * count));
+        let totalTaxable = ((groupedItem?.room?.taxable_amount * groupedItem.totalCost) / groupedItem.room.amount_ksh) * count;
+
         const netDiscount = totalTaxable * discountRate;
         totalTaxable = totalTaxable - netDiscount;
+
         const taxes = (totalRate / 100) * totalTaxable;
         const taxDisplay = getItemTaxDisplay(groupedItem);
 
@@ -369,7 +371,8 @@ const PdfRoomTableLeisure: React.FC<RoomTableLeisurePDFProps> = ({ items, formDa
 
         const totalRate = item.room?.taxes?.reduce((sum: number, tax: any) => sum + tax.rate, 0) ?? 0;
         const discountRate = getDiscountPercentage(item.selectedDiscount) / 100 || 0;
-        const discount = Math.round(discountRate * totalAmount);
+        const supplement = item.isHolidayRow ? (item.holidaySupplement ?? 0) : 0;
+        const discount = Math.round(discountRate * (totalAmount - supplement));
         const netDiscount = totalTaxable * discountRate;
         totalTaxable = totalTaxable - netDiscount;
         const taxes = (totalRate / 100) * totalTaxable;
@@ -518,11 +521,7 @@ const PdfRoomTableLeisure: React.FC<RoomTableLeisurePDFProps> = ({ items, formDa
                                     .join(', ')})`}
                         </Text>
                         <Text style={[styles.rowCell, hasDiscount ? styles.colRoomItem : styles.colRoomItemNoDiscount]}>
-                            {nightsLabel === formData?.numNights
-                                ? (formData?.numNights ?? 'N/A')
-                                : nightsLabel === 1
-                                  ? getOrdinalSuffix(groupedItem.nights?.[0] ?? 1)
-                                  : nightsLabel}
+                            {nightsLabel === formData?.numNights ? (formData?.numNights ?? 'N/A') : nightsLabel === 1 ? 1 : nightsLabel}
                         </Text>
                         <Text style={[styles.rowCell, hasDiscount ? styles.colRoomItem : styles.colRoomItemNoDiscount]}>
                             {formatCurrency(ratePerNight)}

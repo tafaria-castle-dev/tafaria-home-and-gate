@@ -14,7 +14,10 @@ class Tax extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'id', 'name', 'tax_code', 'rate'
+        'id',
+        'name',
+        'tax_code',
+        'rate'
     ];
 
     public function additionals()
@@ -30,5 +33,10 @@ class Tax extends Model
     public function corporateRoomSettings()
     {
         return $this->belongsToMany(CorporateRoomSetting::class);
+    }
+
+    public function immersionPackages()
+    {
+        return $this->belongsToMany(ImmersionPackage::class, 'immersion_package_tax', 'tax_id', 'package_id');
     }
 }

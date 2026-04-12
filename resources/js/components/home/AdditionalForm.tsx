@@ -201,7 +201,9 @@ const AdditionalForm: React.FC<AdditionalFormProps> = ({
     const basePrice = (priceModal.customPrice || 0) * (priceModal.numnights || 1) * (priceModal.noofpax || 1);
     const modalPrice = Math.round(basePrice * (1 - (priceModal.selectedDiscount || 0) / 100));
 
-    const typeAdditionals = additionals.filter((additional) => additional.type?.toLowerCase() === type?.toLowerCase());
+    const normalizedType = type?.toLowerCase() === 'immersion' ? 'leisure' : type?.toLowerCase();
+
+    const typeAdditionals = additionals.filter((additional) => additional.type?.toLowerCase() === normalizedType);
     const filteredAdditionals = typeAdditionals.filter((additional) => additional.name.toLowerCase().includes(searchQuery.toLowerCase()));
     const formatValue = (text: string) => {
         return text?.replace(/\\n/g, '\n')?.replace(/\\t/g, '\t');

@@ -324,7 +324,7 @@ const CreateQuotation: React.FC<CreateQuotationProps> = ({ activeTab, setActiveT
                 ...(formData.selectedType === 'Corporate' && {
                     institutionName: institutionName,
                 }),
-                ...(formData.selectedType === 'Leisure' && {
+                ...((formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') && {
                     institutionName: '',
                 }),
             }));
@@ -335,7 +335,7 @@ const CreateQuotation: React.FC<CreateQuotationProps> = ({ activeTab, setActiveT
                 phone: '',
                 email: '',
                 contact_person_id: '',
-                ...(formData.selectedType === 'Leisure' && {
+                ...((formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') && {
                     institutionName: '',
                 }),
             }));
@@ -783,6 +783,25 @@ const CreateQuotation: React.FC<CreateQuotationProps> = ({ activeTab, setActiveT
                                 Leisure
                             </motion.button>
                         </div>
+                        <div className="flex-1">
+                            <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                animate={{
+                                    backgroundColor: formData.selectedType === 'Immersion' ? '#22c55e' : '#d1d5db',
+                                    color: formData.selectedType === 'Immersion' ? 'white' : 'black',
+                                }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                className="w-full rounded-md px-6 py-3 font-semibold shadow-md"
+                                onClick={() => {
+                                    saveLocally('updatedRoomDetails', []);
+                                    saveLocally('selectedType', 'Immersion');
+                                    saveLocally('institutionName', '');
+                                    setShowInstitution(false);
+                                }}
+                            >
+                                Immersion
+                            </motion.button>
+                        </div>
                     </div>
                     {formData.selectedType === 'Corporate' && (
                         <div className="flex-1">
@@ -1108,7 +1127,7 @@ const CreateQuotation: React.FC<CreateQuotationProps> = ({ activeTab, setActiveT
                         <label className="mb-2 block text-sm text-gray-600">Pax {formData.adults}</label>
                         <PaxAdult selectedType={formData.selectedType} adults={formData.adults} setAdults={setAdults} />
                     </div>
-                    {formData.selectedType === 'Leisure' && (
+                    {(formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') && (
                         <div className="flex-1">
                             <label className="mb-2 block text-sm text-gray-600">Kids {formData.kids.length}</label>
                             <PaxKids kids={formData.kids} setKids={setKids} />

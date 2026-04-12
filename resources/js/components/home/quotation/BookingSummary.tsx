@@ -79,7 +79,7 @@ export default function BookingSummary({ formData, onDiscountChange, setFormData
                         />
                     </>
                 )}
-                {formData.selectedType === 'Leisure' && (
+                {(formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') && (
                     <>
                         {formData.quotationLeisure.roomDetails?.length > 0 && (
                             <RoomTableLeisure items={formData.quotationLeisure.roomDetails} formData={formData} onTotalChange={setTotalRoom} />

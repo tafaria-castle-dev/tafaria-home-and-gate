@@ -15,7 +15,10 @@ const QuotationSummary: React.FC<QuotationSummaryProps> = ({ formData }) => {
     const roomDetails = formData.quotationLeisure.roomDetails || [];
     console.log('Rendering QuotationSummary with roomDetails:', roomDetails);
 
-    const getDiscountedRoomTotal = (room: any) => Math.round(room.totalCost * (1 - (room?.selectedDiscount || 0) / 100));
+    const getDiscountedRoomTotal = (room: any) => {
+        const hasHoliday = (room.holidayNights ?? 0) > 0 && (room.holidaySupplement ?? 0) > 0;
+        return Math.round((hasHoliday ? room.totalCost - room.holidaySupplement : room.totalCost) * (1 - (room?.selectedDiscount || 0) / 100));
+    };
 
     const totalDiscounted = roomDetails.reduce((sum: number, room: any) => sum + getDiscountedRoomTotal(room), 0);
 
@@ -84,7 +87,10 @@ const QuotationSummary: React.FC<QuotationSummaryProps> = ({ formData }) => {
                                     {room?.selectedDiscount > 0 && (
                                         <p className="mt-1 text-green-700">
                                             Discount: {room.selectedDiscount}% → saves KSh{' '}
-                                            {Math.round(room.totalCost * (room.selectedDiscount / 100)).toLocaleString()}
+                                            {Math.round(
+                                                (hasHoliday ? room.totalCost - room.holidaySupplement : room.totalCost) *
+                                                    (room.selectedDiscount / 100),
+                                            ).toLocaleString()}
                                         </p>
                                     )}
 

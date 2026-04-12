@@ -166,7 +166,9 @@ const RoomConfig: React.FC<RoomConfigProps> = ({ selectedType, numNights, formDa
             )}
             {!isLoading && (
                 <>
-                    {selectedType === 'Leisure' && <LeisureQuotationGenerator formData={formData} setFormData={setFormData} activeTab={activeTab} />}
+                    {(formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') && (
+                        <LeisureQuotationGenerator formData={formData} setFormData={setFormData} activeTab={activeTab} />
+                    )}
                     {selectedType === 'Corporate' && (
                         <div className="space-y-6">
                             <div className="rounded-lg border bg-white p-6 shadow-sm">
@@ -238,7 +240,7 @@ const RoomConfig: React.FC<RoomConfigProps> = ({ selectedType, numNights, formDa
                                         ✕
                                     </button>
                                 </div>
-                                {selectedType === 'Leisure' && (
+                                {(selectedType === 'Leisure' || selectedType === 'Immersion') && (
                                     <RoomConfigLeisure
                                         type={selectedRoom.charAt(0).toUpperCase() + selectedRoom.slice(1)}
                                         numNights={numNights}

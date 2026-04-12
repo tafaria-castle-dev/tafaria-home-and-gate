@@ -213,6 +213,7 @@ interface RoomItem {
     isHolidayRow?: boolean;
     baseRatePerNight?: number;
     supplementPerNight?: number;
+    baseTaxableAmount?: number;
 }
 
 interface TaxSummary {
@@ -271,6 +272,7 @@ const PdfRoomTable: React.FC<PdfRoomTableProps> = ({ items, formData, is_invoice
                 amount_ksh: Math.round(displayedRatePerNight),
                 total: rowTotalBeforeDiscount,
                 taxable_amount: (portionTaxable / ratePerNight) * displayedRatePerNight,
+                baseTaxableAmount: portionTaxable,
                 isHolidayRow: isHoliday,
             };
         };
@@ -300,10 +302,13 @@ const PdfRoomTable: React.FC<PdfRoomTableProps> = ({ items, formData, is_invoice
 
     const taxSummary = allTaxCodes.map((code) => {
         const itemsWithThisTax = displayRows.filter((item) => item.taxes.some((tax) => getTaxCode(tax) === code));
+
         const totalDiscount = itemsWithThisTax.reduce((sum, item) => {
             if (item.selectedDiscount) {
+                const baseTaxable = item.baseTaxableAmount ?? item.taxable_amount;
                 const itemDiscountAmount =
-                    ((item.taxable_amount * getDiscountPercentage(item.selectedDiscount)) / 100) *
+                    baseTaxable *
+                    (getDiscountPercentage(item.selectedDiscount) / 100) *
                     item.rooms *
                     (item.nights ? item.nights : formData.numNights);
                 return sum + itemDiscountAmount;
@@ -315,21 +320,16 @@ const PdfRoomTable: React.FC<PdfRoomTableProps> = ({ items, formData, is_invoice
             (sum, item) => sum + item.taxable_amount * item.rooms * (item.nights ? item.nights : formData.numNights),
             0,
         );
+
         if (totalDiscount) {
             taxableAmountForThisTax = taxableAmountForThisTax - totalDiscount;
         }
+
         const rate = itemsWithThisTax[0]?.taxes.find((tax) => getTaxCode(tax) === code)?.rate || 0;
         const name = itemsWithThisTax[0]?.taxes.find((tax) => getTaxCode(tax) === code)?.name || '';
-
         const amount = taxableAmountForThisTax * (rate / 100);
 
-        return {
-            code,
-            rate,
-            amount,
-            name,
-            taxableAmount: taxableAmountForThisTax,
-        };
+        return { code, rate, amount, name, taxableAmount: taxableAmountForThisTax };
     });
 
     const getItemTaxDisplay = (item: RoomItem) => {
@@ -352,28 +352,23 @@ const PdfRoomTable: React.FC<PdfRoomTableProps> = ({ items, formData, is_invoice
     };
 
     const getItemDetails = (item: RoomItem, numNights: number) => {
+        const nightsCount = item.nights ? item.nights : numNights;
         const totalAmount = item.total * (item.nights ? 1 : numNights);
-        let totalTaxable = item.taxable_amount * item.rooms * (item.nights ? item.nights : numNights);
+        const totalDiscountableAmount = item.nights ? item.total - (item.holidaySupplement ?? 0) : item.total * numNights;
+
+        const baseTaxable = item.baseTaxableAmount ?? item.taxable_amount;
+        let totalTaxable = item.taxable_amount * item.rooms * nightsCount;
+        const totalTaxableWithoutSupp = baseTaxable * item.rooms * nightsCount;
+
         const totalRate = item.taxes.reduce((sum, tax) => sum + tax.rate, 0);
         const discountRate = getDiscountPercentage(item.selectedDiscount) / 100 || 0;
-        const discount = Math.round(discountRate * totalAmount);
-        const netDiscount = totalTaxable * discountRate;
+        const discount = Math.round(discountRate * totalDiscountableAmount);
+        const netDiscount = totalTaxableWithoutSupp * discountRate;
         totalTaxable = totalTaxable - netDiscount;
-
         const taxes = (totalRate / 100) * totalTaxable;
-
         const taxDisplay = getItemTaxDisplay(item);
 
-        return {
-            totalAmount,
-            totalTaxable,
-            totalRate,
-            discountRate,
-            discount,
-            taxes,
-            netDiscount,
-            taxDisplay,
-        };
+        return { totalAmount, totalTaxable, totalRate, discountRate, discount, taxes, netDiscount, taxDisplay };
     };
 
     const grandTotals = displayRows.reduce(

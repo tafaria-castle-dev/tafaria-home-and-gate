@@ -19,7 +19,7 @@ enum RoomType {
     quadra = 'quadra',
 }
 
-const PackagesSettings: React.FC = () => {
+const ImmersionPackagesSettings: React.FC = () => {
     const { isAuthenticated, logout, user } = useAuth();
     const [packages, setPackages] = useState<any[]>([]);
     const [taxes, setTaxes] = useState<any[]>([]);
@@ -62,7 +62,7 @@ const PackagesSettings: React.FC = () => {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [packagesResponse, taxesResponse] = await Promise.all([axios.get('/api/packages'), axios.get('/api/taxes')]);
+            const [packagesResponse, taxesResponse] = await Promise.all([axios.get('/api/immersion-packages'), axios.get('/api/taxes')]);
             setPackages(packagesResponse.data || []);
             setTaxes(taxesResponse.data || []);
         } catch (error) {
@@ -158,7 +158,7 @@ const PackagesSettings: React.FC = () => {
 
         try {
             setIsPending(true);
-            await Promise.all(datas.map((data) => axios.post('/api/packages', data)));
+            await Promise.all(datas.map((data) => axios.post('/api/immersion-packages', data)));
             toast.success('Packages added successfully!');
             resetForm();
             setIsCreateModalOpen(false);
@@ -234,12 +234,12 @@ const PackagesSettings: React.FC = () => {
                 ...datas.map((data) => {
                     if (data.id) {
                         const { id, ...updateData } = data;
-                        return axios.put(`/api/packages/${id}`, updateData);
+                        return axios.put(`/api/immersion-packages/${id}`, updateData);
                     } else {
-                        return axios.post('/api/packages', data);
+                        return axios.post('/api/immersion-packages', data);
                     }
                 }),
-                ...toDelete.map((id) => axios.delete(`/api/packages/${id}`)),
+                ...toDelete.map((id) => axios.delete(`/api/immersion-packages/${id}`)),
             ]);
             toast.success('Packages updated successfully!');
             setIsEditModalOpen(false);
@@ -257,7 +257,7 @@ const PackagesSettings: React.FC = () => {
         setDeletingId(id);
 
         try {
-            await axios.delete(`/api/packages/${id}`);
+            await axios.delete(`/api/immersion-packages/${id}`);
             toast.success('Package deleted successfully!');
             fetchData();
         } catch (error) {
@@ -973,4 +973,4 @@ const PackagesSettings: React.FC = () => {
     );
 };
 
-export default PackagesSettings;
+export default ImmersionPackagesSettings;

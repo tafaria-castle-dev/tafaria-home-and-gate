@@ -12,7 +12,6 @@ interface LeisureQuotationGeneratorProps {
 }
 
 const LeisureQuotationGenerator: React.FC<LeisureQuotationGeneratorProps> = ({ setFormData, formData, activeTab }) => {
-    console.log('Form data', formData);
     const [adultRooms, setAdultRooms] = useState<any[]>([]);
     const [kidsRooms, setKidsRooms] = useState<any[]>([]);
     const [editingAdultRoomIndex, setEditingAdultRoomIndex] = useState<number | null>(null);

@@ -104,7 +104,8 @@ const RoomTableLeisure: React.FC<{
         const totalDiscount = itemsWithThisTax.reduce((sum, item) => {
             if (item.selectedDiscount) {
                 const itemDiscountAmount =
-                    ((item?.room?.taxable_amount * item.totalCost) / item.room.amount_ksh) * (getDiscountPercentage(item.selectedDiscount) / 100);
+                    ((item?.room?.taxable_amount * (item.totalCost - (item.holidaySupplement ?? 0))) / item.room.amount_ksh) *
+                    (getDiscountPercentage(item.selectedDiscount) / 100);
                 return sum + itemDiscountAmount;
             }
             return sum;
@@ -167,15 +168,18 @@ const RoomTableLeisure: React.FC<{
         const totalAmount = item.totalCost;
 
         let totalTaxable = (item?.room?.taxable_amount * item.totalCost) / item.room.amount_ksh;
+        let totalTaxableWithoutSupp = (item?.room?.taxable_amount * (item.totalCost - (item.holidaySupplement ?? 0))) / item.room.amount_ksh;
 
         const totalRate = item?.room?.taxes?.reduce((sum: number, tax: Tax) => sum + tax.rate, 0) ?? 0;
         const discountRate = getDiscountPercentage(item.selectedDiscount) / 100 || 0;
-        const netDiscount = totalTaxable * discountRate;
+        const netDiscount = totalTaxableWithoutSupp * discountRate;
         totalTaxable = totalTaxable - netDiscount;
-        const discount = Math.round(discountRate * totalAmount);
+        const discount = Math.round(discountRate * (totalAmount - (item.holidaySupplement ?? 0)));
         const taxes = (totalRate / 100) * totalTaxable;
         const taxDisplay = getItemTaxDisplay(item);
-
+        console.log('totalTaxable', totalTaxable);
+        console.log('totalA', totalAmount);
+        console.log('Discount', netDiscount);
         return {
             totalAmount,
             totalTaxable,

@@ -577,20 +577,24 @@ const CreateOpportunity: React.FC<CreateOpportunityProps> = ({ setActiveTab, onS
                                                 contactPersonSearchQuery,
                                                 (person) => `${person.first_name} ${person.last_name}`,
                                             )}
-                                            value={allContactPersons.find((p) => `${p.first_name} ${p.last_name}`.trim() === formData.name) || null}
+                                            value={
+                                                allContactPersons.find(
+                                                    (p) => `${p.first_name || ''} ${p.last_name || ''}`.trim() === formData.name,
+                                                ) || null
+                                            }
                                             inputValue={contactPersonSearchQuery}
                                             onInputChange={(event, newInputValue) => {
                                                 setContactPersonSearchQuery(newInputValue);
                                             }}
                                             onChange={handleContactPersonAutocompleteChange}
                                             loading={isContactPersonsLoading}
-                                            getOptionLabel={(option) => `${option.first_name} ${option.last_name}`.trim()}
+                                            getOptionLabel={(option) => `${option.first_name || ''} ${option.last_name || ''}`.trim()}
                                             renderOption={(props, option) => (
                                                 <li {...props} key={option.id}>
                                                     <div>
                                                         <div className="font-medium">
                                                             {highlightMatch(
-                                                                `${option.first_name} ${option.last_name}`.trim(),
+                                                                `${option.first_name || ''} ${option.last_name || ''}`.trim(),
                                                                 contactPersonSearchQuery,
                                                             )}
                                                         </div>

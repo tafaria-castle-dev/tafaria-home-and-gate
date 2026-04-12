@@ -126,7 +126,8 @@ const RoomSetup = forwardRef<{ reset: () => void }, RoomSetUpProps>(
         const fetchPackages = async () => {
             setIsLoading(true);
             try {
-                const response = await axios.get('/api/packages');
+                const endpoint = formData?.selectedType === 'Immersion' ? '/api/immersion-packages' : '/api/packages';
+                const response = await axios.get(endpoint);
                 setPackages(response.data || []);
             } catch (error) {
                 console.error('Error fetching packages:', error);
@@ -139,7 +140,7 @@ const RoomSetup = forwardRef<{ reset: () => void }, RoomSetUpProps>(
             if (isAuthenticated) {
                 fetchPackages();
             }
-        }, [isAuthenticated]);
+        }, [isAuthenticated, formData?.selectedType]);
 
         useEffect(() => {
             if (roomToEdit) {

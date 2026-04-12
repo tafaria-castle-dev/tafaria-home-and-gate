@@ -2,40 +2,11 @@ import axios from 'axios';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import RoomSetUp from '../home/quotation/rooms/RoomSetUp';
 import { Meal } from '../home/quotation/rooms/RoomSetUpKids';
+import { isHolidayDate } from '../utils/holidayDates';
 
 const cutoffDate = new Date('2025-11-05T00:00:00');
 
 const HOLIDAY_SUPPLEMENT = 4000;
-
-function getEasterDates(year: number): { start: Date; end: Date } {
-    const a = year % 19,
-        b = Math.floor(year / 100),
-        c = year % 100;
-    const d = Math.floor(b / 4),
-        e = b % 4,
-        f = Math.floor((b + 8) / 25);
-    const g = Math.floor((b - f + 1) / 3);
-    const h = (19 * a + b - d - g + 15) % 30;
-    const i = Math.floor(c / 4),
-        k = c % 4;
-    const l = (32 + 2 * e + 2 * i - h - k) % 7;
-    const m = Math.floor((a + 11 * h + 22 * l) / 451);
-    const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-    const day = ((h + l - 7 * m + 114) % 31) + 1;
-    return {
-        start: new Date(year, month, day - 2), // Good Friday
-        end: new Date(year, month, day + 1), // Easter Monday
-    };
-}
-
-function isHolidayDate(date: Date): boolean {
-    const month = date.getMonth(),
-        day = date.getDate(),
-        year = date.getFullYear();
-    if (month === 11 && day >= 24 && day <= 26) return true;
-    const { start, end } = getEasterDates(year);
-    return date.getTime() >= start.getTime() && date.getTime() <= end.getTime();
-}
 
 function countHolidayNights(checkIn: string, checkOut: string): number {
     if (!checkIn || !checkOut) return 0;
@@ -393,9 +364,19 @@ const AdultRoomSelection: React.FC<AdultRoomSelectionProps> = ({
             const age = formData.kids?.[idx]?.age;
             return age >= 4 && age <= 11;
         }).length;
-        const holidaySupplementPerRoom = hasHoliday
-            ? (HOLIDAY_SUPPLEMENT * paxPerRoomAdult + (HOLIDAY_SUPPLEMENT / 2) * qualifyingKidsCount) * holidayNights
+
+        const checkInDate = formData.checkIn ? new Date(formData.checkIn) : null;
+        const selectedHolidayNights = checkInDate
+            ? selectedNights.filter((nightIndex) => {
+                  const d = new Date(checkInDate);
+                  d.setDate(checkInDate.getDate() + nightIndex - 1);
+                  d.setHours(0, 0, 0, 0);
+                  return isHolidayDate(d);
+              }).length
             : 0;
+
+        const roomHolidaySupplementPerNight = HOLIDAY_SUPPLEMENT * paxPerRoomAdult + (HOLIDAY_SUPPLEMENT / 2) * qualifyingKidsCount;
+        const holidaySupplementPerRoom = selectedHolidayNights > 0 ? roomHolidaySupplementPerNight * selectedHolidayNights : 0;
 
         const totalCostPerRoom = (roomRate + kidsCost) * selectedNights.length + holidaySupplementPerRoom;
 
@@ -412,9 +393,10 @@ const AdultRoomSelection: React.FC<AdultRoomSelectionProps> = ({
             adultCost: roomRate * selectedNights.length,
             kidsCost: kidsCost * selectedNights.length,
             holidaySupplement: holidaySupplementPerRoom,
-            holidayNights: hasHoliday ? holidayNights : undefined,
-            holidayLabel: hasHoliday ? holidayLabel : undefined,
-            holidayMessage: hasHoliday ? `Includes ${holidayLabel} supplement (KES ${holidaySupplementPerRoom.toLocaleString()})` : undefined,
+            holidayNights: selectedHolidayNights > 0 ? selectedHolidayNights : undefined,
+            holidayLabel: selectedHolidayNights > 0 ? holidayLabel : undefined,
+            holidayMessage:
+                selectedHolidayNights > 0 ? `Includes ${holidayLabel} supplement (KES ${holidaySupplementPerRoom.toLocaleString()})` : undefined,
             cost: totalCostPerRoom,
             isKidsRoom: false,
         };

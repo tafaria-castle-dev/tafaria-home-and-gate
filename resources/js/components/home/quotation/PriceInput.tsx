@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
+import { isHolidayDate } from '@/components/utils/holidayDates';
 import { useEffect, useState } from 'react';
 import PriceSummary from './PriceSummary';
 
@@ -21,40 +22,6 @@ interface RoomConfiguration {
 }
 
 const HOLIDAY_SUPPLEMENT_PER_PERSON_PER_NIGHT = 4000;
-
-function getEasterDates(year: number): { start: Date; end: Date } {
-    const a = year % 19;
-    const b = Math.floor(year / 100);
-    const c = year % 100;
-    const d = Math.floor(b / 4);
-    const e = b % 4;
-    const f = Math.floor((b + 8) / 25);
-    const g = Math.floor((b - f + 1) / 3);
-    const h = (19 * a + b - d - g + 15) % 30;
-    const i = Math.floor(c / 4);
-    const k = c % 4;
-    const l = (32 + 2 * e + 2 * i - h - k) % 7;
-    const m = Math.floor((a + 11 * h + 22 * l) / 451);
-    const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-    const day = ((h + l - 7 * m + 114) % 31) + 1;
-    const goodFriday = new Date(year, month, day - 2);
-    const easterMonday = new Date(year, month, day + 1);
-    return { start: goodFriday, end: easterMonday };
-}
-
-function isHolidayDate(date: Date): boolean {
-    const month = date.getMonth();
-    const day = date.getDate();
-    const year = date.getFullYear();
-
-    if (month === 11 && day >= 24 && day <= 26) return true;
-
-    const easter = getEasterDates(year);
-    const time = date.getTime();
-    if (time >= easter.start.getTime() && time <= easter.end.getTime()) return true;
-
-    return false;
-}
 
 function countHolidayNights(checkIn: string, checkOut: string): number {
     if (!checkIn || !checkOut) return 0;
@@ -135,17 +102,18 @@ const PriceInput = ({
             const mappedConfigs = existingConfigs.map((room) => {
                 const peopleCount = room.rooms * (paxMultiplier[room.room_type.toLowerCase()] || 1);
                 const holidaySupp = computeHolidaySupplement(peopleCount);
+                console.log('Room', room);
                 return {
                     id: room.id,
                     baseRoomId: room.baseRoomId || room.id,
                     nights: room.nights,
                     discount: room.selectedDiscount || 0,
-                    discountKsh: Math.round((room.selectedDiscount / 100) * room.total),
+                    discountKsh: Math.round((room.selectedDiscount / 100) * (room.total - room.holidaySupplement)),
                     pax: peopleCount,
                     boardType: room.board_type,
                     amount: room.amount_ksh,
                     total: room.total,
-                    discountedTotal: Math.round(room.total * (1 - room.selectedDiscount / 100)),
+                    discountedTotal: Math.round((room.total - room.holidaySupplement) * (1 - room.selectedDiscount / 100)),
                     roomType: room.room_type,
                     holidaySupplement: holidaySupp,
                 };
@@ -252,7 +220,7 @@ const PriceInput = ({
                 baseRoomId: cfg.baseRoomId,
                 rooms: cfg.pax / (paxMultiplier[cfg.roomType.toLowerCase()] || 1),
                 nights: cfg.nights,
-                total: cfg.discountedTotal,
+                total: cfg.total,
                 pax: cfg.pax,
                 selectedDiscount: cfg.discount,
                 amount_ksh: cfg.amount,
@@ -284,7 +252,7 @@ const PriceInput = ({
                 baseRoomId: cfg.baseRoomId,
                 rooms: cfg.pax / (paxMultiplier[cfg.roomType.toLowerCase()] || 1),
                 nights: cfg.nights,
-                total: cfg.discountedTotal,
+                total: cfg.total,
                 pax: cfg.pax,
                 selectedDiscount: cfg.discount,
                 amount_ksh: cfg.amount,
@@ -470,7 +438,9 @@ const PriceInput = ({
                                         )}
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <span className="font-medium text-gray-700">KES {config.discountedTotal.toLocaleString()}</span>
+                                        <span className="font-medium text-gray-700">
+                                            KES {(config.holidaySupplement + config.discountedTotal).toLocaleString()}
+                                        </span>
                                         <button
                                             onClick={() => removeConfiguration(config.id)}
                                             className="rounded px-2 py-1 text-sm text-red-600 hover:bg-red-50 hover:text-red-800"
@@ -494,7 +464,7 @@ const PriceInput = ({
                         )}
                         <div className="flex items-center justify-between">
                             <span className="font-semibold text-gray-800">
-                                Total: KES {roomConfigurations.reduce((sum, c) => sum + c.discountedTotal, 0).toLocaleString()}
+                                Total: KES {roomConfigurations.reduce((sum, c) => sum + c.discountedTotal + c.holidaySupplement, 0).toLocaleString()}
                             </span>
                             <div />
                         </div>

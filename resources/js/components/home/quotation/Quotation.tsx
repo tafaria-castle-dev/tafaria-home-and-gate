@@ -2,12 +2,12 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import { useEffect, useRef, useState } from 'react';
 
+import { isHolidayDate } from '@/components/utils/holidayDates';
 import axios from 'axios';
 import PdfRoomTable from '../../quotations/PdfRoomTable';
 import PdfRoomTableLeisure from '../../quotations/PdfRoomTableLeisure';
 import PdfServiceTable from '../../quotations/PdfServiceTable';
 import CombinedTaxSummaryPdf from '../../quotations/PdfSummaryBreakdown';
-import { AdditionalService } from '../AdditionalForm';
 
 Font.register({
     family: 'Montserrat',
@@ -512,7 +512,7 @@ const Quotation = ({
 
     if (formData.selectedType === 'Corporate') {
         totalBeforeDiscount = totalRoomCostCorporate + totalAdditionalServicesCost;
-    } else if (formData.selectedType === 'Leisure') {
+    } else if (formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') {
         totalBeforeDiscount = totalRoomCostLeisure + totalAdditionalServicesCost;
     }
 
@@ -539,6 +539,23 @@ const Quotation = ({
     const [imagesReady, setImagesReady] = useState(false);
     const [supplementImageData, setSupplementImageData] = useState<string | null>(null);
 
+    function getHolidayLabel(checkIn: string, checkOut: string): string {
+        if (!checkIn || !checkOut) return '';
+        let christmas = false,
+            easter = false;
+        const current = new Date(checkIn);
+        const end = new Date(checkOut);
+        while (current < end) {
+            if (isHolidayDate(current)) {
+                const m = current.getMonth(),
+                    d = current.getDate();
+                if (m === 11 && d >= 24 && d <= 26) christmas = true;
+                else easter = true;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        return [christmas && 'Christmas', easter && 'Easter'].filter(Boolean).join(' & ');
+    }
     useEffect(() => {
         const checkInterval = setInterval(() => {
             const room = localStorage.getItem('roomSummary');
@@ -571,35 +588,27 @@ const Quotation = ({
     useEffect(() => {
         const fetchAndPrepareImages = async () => {
             try {
-                const query = '?category=supplements';
-                const response = await axios.get(`/api/file-uploads${query}`);
+                const response = await axios.get(`/api/file-uploads?category=supplements`);
                 setFilteredFiles(response.data);
 
-                const supplementServices = formData.selectedAdditionalServices.filter(
-                    (service: AdditionalService) => service.name && /Supplement|supplement/i.test(service.name),
-                );
-
-                if (supplementServices.length > 0) {
-                    const firstService = supplementServices[0];
-                    const supplementType = firstService.supplementType || 'Christmas';
+                const holidayLabel = getHolidayLabel(formData.checkIn, formData.checkOut);
+                console.log('holidayLabel', holidayLabel);
+                if (holidayLabel) {
                     const matchingFile = response.data.find((file: FileUpload) =>
-                        file.category?.toLowerCase().includes(supplementType.toLowerCase()),
+                        file.category?.toLowerCase().includes(holidayLabel.split(' & ')[0].toLowerCase()),
                     );
 
                     if (matchingFile) {
-                        const imageResponse = await axios.get(matchingFile.file_path, {
-                            responseType: 'arraybuffer',
-                        });
+                        const imageResponse = await axios.get(matchingFile.file_path, { responseType: 'arraybuffer' });
+                        console.log('imageResponse', imageResponse);
                         const base64 = btoa(new Uint8Array(imageResponse.data).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-                        setSupplementImageData(`data:image/png;base64,${base64}`);
+                        const mimeType = matchingFile.file_type || 'image/png';
+                        setSupplementImageData(`data:${mimeType};base64,${base64}`);
                     }
                 } else if (isNewYearPeriod(formData.checkIn)) {
                     const matchingFile = response.data.find((file: FileUpload) => file.category?.toLowerCase().includes('new year'));
-
                     if (matchingFile) {
-                        const imageResponse = await axios.get(matchingFile.file_path, {
-                            responseType: 'arraybuffer',
-                        });
+                        const imageResponse = await axios.get(matchingFile.file_path, { responseType: 'arraybuffer' });
                         const base64 = btoa(new Uint8Array(imageResponse.data).reduce((data, byte) => data + String.fromCharCode(byte), ''));
                         setNewYearImageData(`data:image/png;base64,${base64}`);
                     }
@@ -613,7 +622,7 @@ const Quotation = ({
         };
 
         fetchAndPrepareImages();
-    }, [formData.selectedAdditionalServices, formData.checkIn]);
+    }, [formData.checkIn, formData.checkOut]);
 
     return (
         <Document title={formData.institutionName || formData.name}>
@@ -714,7 +723,7 @@ const Quotation = ({
                                 <Text style={styles.label}>Pax:</Text>
                                 <Text>{formData?.adults || 'N/A'}</Text>
                             </View>
-                            {formData.selectedType === 'Leisure' && (
+                            {(formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') && (
                                 <View style={styles.column}>
                                     <Text style={styles.label}>Kids:</Text>
                                     <Text>{formData?.kids?.length || 'N/A'}</Text>
@@ -742,22 +751,23 @@ const Quotation = ({
                                 />
                             )}
 
-                            {formData.selectedType === 'Leisure' && formData.quotationLeisure?.roomDetails?.length > 0 && (
-                                <PdfRoomTableLeisure
-                                    items={formData.quotationLeisure.roomDetails}
-                                    formData={formData}
-                                    is_invoice_generated={is_invoice_generated}
-                                    onSummaryCalculated={(summary) => {
-                                        localStorage.setItem(
-                                            'roomSummary',
-                                            JSON.stringify({
-                                                taxBreakdown: summary?.taxSummary || {},
-                                                totals: summary?.grandTotals || {},
-                                            }),
-                                        );
-                                    }}
-                                />
-                            )}
+                            {(formData.selectedType === 'Leisure' || formData.selectedType === 'Immersion') &&
+                                formData.quotationLeisure?.roomDetails?.length > 0 && (
+                                    <PdfRoomTableLeisure
+                                        items={formData.quotationLeisure.roomDetails}
+                                        formData={formData}
+                                        is_invoice_generated={is_invoice_generated}
+                                        onSummaryCalculated={(summary) => {
+                                            localStorage.setItem(
+                                                'roomSummary',
+                                                JSON.stringify({
+                                                    taxBreakdown: summary?.taxSummary || {},
+                                                    totals: summary?.grandTotals || {},
+                                                }),
+                                            );
+                                        }}
+                                    />
+                                )}
 
                             {formData.selectedAdditionalServices.length > 0 && (
                                 <PdfServiceTable

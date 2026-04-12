@@ -58,7 +58,8 @@ const RoomSetUpKids = forwardRef<{ reset: () => void }, RoomSetUpProps>(({ onSel
     const fetchPackages = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get('/api/packages');
+            const endpoint = formData?.selectedType === 'Immersion' ? '/api/immersion-packages' : '/api/packages';
+            const response = await axios.get(endpoint);
             setPackages(response.data || []);
         } catch (error) {
             console.error('Error fetching packages:', error);
@@ -83,7 +84,7 @@ const RoomSetUpKids = forwardRef<{ reset: () => void }, RoomSetUpProps>(({ onSel
             fetchPackages();
             fetchMeals();
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, formData?.selectedType]);
     const [kidsRooms, setKidsRooms] = useState<any[]>([]);
 
     const normalizeRoom = useCallback(

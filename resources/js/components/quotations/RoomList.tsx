@@ -49,7 +49,8 @@ const RoomList: React.FC<RoomListProps> = ({ title, rooms, formData, onDeleteRoo
                                     <h3 className="mt-2 text-sm text-gray-800">Discount: {getDiscountPercentage(room.discount)}%</h3>
                                 )}
                                 <p className="font-semibold">
-                                    Total Room Cost: Ksh {Math.round(room.cost * (1 - getDiscountPercentage(room.discount) / 100))}
+                                    Total Room Cost: Ksh{' '}
+                                    {Math.round((room.cost - room.holidaySupplement) * (1 - getDiscountPercentage(room.discount) / 100))}
                                 </p>
                             </div>
                             <div className="mt-2 flex space-x-2">
