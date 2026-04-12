@@ -354,7 +354,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
             setIsFetchingReservation(true);
             try {
                 const { data } = await axios.get(`/api/guest-reservations/${reservationId}`);
-                const guestData = data.data;
+                const guestData = data;
                 const foundContact = contacts.find((c) => c.id === guestData.contact_id) || null;
                 const foundContactPerson = allContactPersons.find((p) => p.id === guestData.contact_person_id) || null;
 

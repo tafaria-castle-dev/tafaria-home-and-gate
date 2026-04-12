@@ -631,7 +631,7 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
     };
     const mapQuotationToReservation = (quotation: any) => {
         const details = quotation.quotation_details;
-        const isLeisure = details.selectedType?.toLowerCase() === 'leisure';
+        const isLeisure = details.selectedType?.toLowerCase() === 'leisure' || details.selectedType?.toLowerCase() === 'immersion';
         const contactPerson = quotation.contact_person;
         const contact = quotation.contact;
 
