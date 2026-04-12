@@ -51,11 +51,11 @@ class GuestReservationController extends Controller
         $now = Carbon::now();
 
         $liveQuery = GuestReservation::whereNotNull('entry_time')->whereNull('exit_time');
-        $active         = (clone $liveQuery)->count();
-        $adultsActive   = (int)(clone $liveQuery)->sum('adults_count');
-        $kidsActive     = (int)(clone $liveQuery)->sum('kids_count');
-        $infantsActive  = (int)(clone $liveQuery)->sum('infants_count');
-        $overdue        = (clone $liveQuery)->whereNotNull('check_out')->where('check_out', '<', $now)->count();
+        $active = (clone $liveQuery)->count();
+        $adultsActive = (int) (clone $liveQuery)->sum('adults_count');
+        $kidsActive = (int) (clone $liveQuery)->sum('kids_count');
+        $infantsActive = (int) (clone $liveQuery)->sum('infants_count');
+        $overdue = (clone $liveQuery)->whereNotNull('check_out')->where('check_out', '<', $now)->count();
 
         $entryBase = GuestReservation::query();
         $this->applyDateRangeFilter($entryBase, $request, 'entry_time');
@@ -63,14 +63,14 @@ class GuestReservationController extends Controller
         $exitBase = GuestReservation::query();
         $this->applyDateRangeFilter($exitBase, $request, 'exit_time');
 
-        $checkInsInPeriod  = (clone $entryBase)->count();
+        $checkInsInPeriod = (clone $entryBase)->count();
         $checkOutsInPeriod = (clone $exitBase)->count();
-        $corporate         = (clone $entryBase)->where('type', 'corporate')->count();
-        $leisure           = (clone $entryBase)->where('type', 'leisure')->count();
-        $walkIn            = (clone $entryBase)->where('entry_type', 'walk_in')->count();
-        $driveIn           = (clone $entryBase)->where('entry_type', 'drive_in')->count();
-        $express           = (clone $entryBase)->where('is_express_check_in', true)->count();
-        $vip               = (clone $entryBase)->where(function ($q) {
+        $corporate = (clone $entryBase)->where('type', 'corporate')->count();
+        $leisure = (clone $entryBase)->where('type', 'leisure')->count();
+        $walkIn = (clone $entryBase)->where('entry_type', 'walk_in')->count();
+        $driveIn = (clone $entryBase)->where('entry_type', 'drive_in')->count();
+        $express = (clone $entryBase)->where('is_express_check_in', true)->count();
+        $vip = (clone $entryBase)->where(function ($q) {
             $q->whereNotNull('dream_pass_code')->orWhere('is_express_check_in', true);
         })->count();
 
@@ -118,28 +118,28 @@ class GuestReservationController extends Controller
             ->get();
 
         return response()->json([
-            'active'                => $active,
-            'adults_active'         => $adultsActive,
-            'kids_active'           => $kidsActive,
-            'infants_active'        => $infantsActive,
-            'overdue'               => $overdue,
-            'check_ins_in_period'   => $checkInsInPeriod,
-            'check_outs_in_period'  => $checkOutsInPeriod,
-            'corporate'             => $corporate,
-            'leisure'               => $leisure,
-            'avg_stay_hours'        => $avgStay ? round($avgStay / 60, 2) : 0,
-            'avg_stay_minutes'      => $avgStay ? (int) round($avgStay) : 0,
-            'bills_pending'         => $billsPending,
-            'bills_cleared'         => $billsCleared,
-            'housekeeping_pending'  => $housekeepingPending,
-            'walk_in'               => $walkIn,
-            'drive_in'              => $driveIn,
-            'express'               => $express,
-            'vip'                   => $vip,
-            'section_breakdown'     => $sectionBreakdown,
-            'type_by_section'       => $typeBySection,
-            'daily_arrivals'        => $dailyArrivals,
-            'daily_departures'      => $dailyDepartures,
+            'active' => $active,
+            'adults_active' => $adultsActive,
+            'kids_active' => $kidsActive,
+            'infants_active' => $infantsActive,
+            'overdue' => $overdue,
+            'check_ins_in_period' => $checkInsInPeriod,
+            'check_outs_in_period' => $checkOutsInPeriod,
+            'corporate' => $corporate,
+            'leisure' => $leisure,
+            'avg_stay_hours' => $avgStay ? round($avgStay / 60, 2) : 0,
+            'avg_stay_minutes' => $avgStay ? (int) round($avgStay) : 0,
+            'bills_pending' => $billsPending,
+            'bills_cleared' => $billsCleared,
+            'housekeeping_pending' => $housekeepingPending,
+            'walk_in' => $walkIn,
+            'drive_in' => $driveIn,
+            'express' => $express,
+            'vip' => $vip,
+            'section_breakdown' => $sectionBreakdown,
+            'type_by_section' => $typeBySection,
+            'daily_arrivals' => $dailyArrivals,
+            'daily_departures' => $dailyDepartures,
         ]);
     }
 
@@ -183,37 +183,38 @@ class GuestReservationController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'guest_name'                            => 'required|string|max:255',
-            'visitor_type'                          => 'nullable|string|max:255',
-            'section'                               => 'required|string|max:255',
-            'car_plate_number'                      => 'nullable|string|max:255',
-            'reservation_number'                    => 'nullable|string|max:255',
-            'entry_time'                            => 'nullable|date',
-            'exit_time'                             => 'nullable|date',
-            'check_in'                              => 'nullable|date',
-            'check_out'                             => 'nullable|date',
-            'contact_id'                            => 'nullable|exists:contacts,id',
-            'contact_person_id'                     => 'nullable|exists:contact_persons,id',
-            'phone_number'                          => 'nullable|string|max:255',
-            'kids_count'                            => 'required|integer|min:0',
-            'infants_count'                         => 'required|integer|min:0',
-            'adults_count'                          => 'required|integer|min:1',
-            'dream_pass_code'                       => 'nullable|string|max:255',
-            'is_express_check_in'                   => 'boolean',
-            'is_express_check_out'                  => 'boolean',
-            'type'                                  => 'required|in:corporate,leisure',
-            'entry_type'                            => 'required|in:walk_in,drive_in',
-            'checked_in_by_user_id'                 => 'nullable|exists:users,id',
-            'created_by_user_id'                    => 'required|exists:users,id',
-            'checked_in_by_guard_id'                => 'nullable|exists:users,id',
-            'cleared_bills'                         => 'nullable|array',
-            'cleared_bills.is_cleared'              => 'nullable|boolean',
-            'cleared_bills.comments'                => 'nullable|string',
-            'cleared_bills_by_user_id'              => 'nullable|exists:users,id',
-            'cleared_by_house_keeping'              => 'nullable|array',
-            'cleared_by_house_keeping.is_cleared'   => 'nullable|boolean',
-            'cleared_by_house_keeping.comments'     => 'nullable|string',
-            'cleared_by_house_keeping_user_id'      => 'nullable|exists:users,id',
+            'guest_name' => 'required|string|max:255',
+            'visitor_type' => 'nullable|string|max:255',
+            'section' => 'required|string|max:255',
+            'car_plate_number' => 'nullable|string|max:255',
+            'reservation_number' => 'nullable|string|max:255',
+            'ref_no' => 'nullable|string|max:255',
+            'entry_time' => 'nullable|date',
+            'exit_time' => 'nullable|date',
+            'check_in' => 'nullable|date',
+            'check_out' => 'nullable|date',
+            'contact_id' => 'nullable|exists:contacts,id',
+            'contact_person_id' => 'nullable|exists:contact_persons,id',
+            'phone_number' => 'nullable|string|max:255',
+            'kids_count' => 'required|integer|min:0',
+            'infants_count' => 'required|integer|min:0',
+            'adults_count' => 'required|integer|min:1',
+            'dream_pass_code' => 'nullable|string|max:255',
+            'is_express_check_in' => 'boolean',
+            'is_express_check_out' => 'boolean',
+            'type' => 'required|in:corporate,leisure',
+            'entry_type' => 'required|in:walk_in,drive_in',
+            'checked_in_by_user_id' => 'nullable|exists:users,id',
+            'created_by_user_id' => 'required|exists:users,id',
+            'checked_in_by_guard_id' => 'nullable|exists:users,id',
+            'cleared_bills' => 'nullable|array',
+            'cleared_bills.is_cleared' => 'nullable|boolean',
+            'cleared_bills.comments' => 'nullable|string',
+            'cleared_bills_by_user_id' => 'nullable|exists:users,id',
+            'cleared_by_house_keeping' => 'nullable|array',
+            'cleared_by_house_keeping.is_cleared' => 'nullable|boolean',
+            'cleared_by_house_keeping.comments' => 'nullable|string',
+            'cleared_by_house_keeping_user_id' => 'nullable|exists:users,id',
         ]);
 
         $guestReservation = GuestReservation::create($data);
@@ -225,37 +226,38 @@ class GuestReservationController extends Controller
     public function update(Request $request, GuestReservation $guestReservation)
     {
         $data = $request->validate([
-            'guest_name'                            => 'sometimes|string|max:255',
-            'visitor_type'                          => 'sometimes|string|max:255',
-            'section'                               => 'sometimes|string|max:255',
-            'car_plate_number'                      => 'nullable|string|max:255',
-            'reservation_number'                    => 'sometimes|string|max:255',
-            'entry_time'                            => 'nullable|date',
-            'exit_time'                             => 'nullable|date',
-            'check_in'                              => 'nullable|date',
-            'check_out'                             => 'nullable|date',
-            'contact_id'                            => 'nullable|exists:contacts,id',
-            'contact_person_id'                     => 'nullable|exists:contact_persons,id',
-            'phone_number'                          => 'nullable|string|max:255',
-            'kids_count'                            => 'sometimes|integer|min:0',
-            'infants_count'                         => 'sometimes|integer|min:0',
-            'adults_count'                          => 'sometimes|integer|min:1',
-            'dream_pass_code'                       => 'nullable|string|max:255',
-            'is_express_check_in'                   => 'boolean',
-            'is_express_check_out'                  => 'boolean',
-            'type'                                  => 'sometimes|in:corporate,leisure',
-            'entry_type'                            => 'sometimes|in:walk_in,drive_in',
-            'checked_in_by_user_id'                 => 'nullable|exists:users,id',
-            'created_by_user_id'                    => 'nullable|exists:users,id',
-            'checked_in_by_guard_id'                => 'nullable|exists:users,id',
-            'cleared_bills'                         => 'nullable|array',
-            'cleared_bills.is_cleared'              => 'nullable|boolean',
-            'cleared_bills.comments'                => 'nullable|string',
-            'cleared_bills_by_user_id'              => 'nullable|exists:users,id',
-            'cleared_by_house_keeping'              => 'nullable|array',
-            'cleared_by_house_keeping.is_cleared'   => 'nullable|boolean',
-            'cleared_by_house_keeping.comments'     => 'nullable|string',
-            'cleared_by_house_keeping_user_id'      => 'nullable|exists:users,id',
+            'guest_name' => 'sometimes|string|max:255',
+            'visitor_type' => 'sometimes|string|max:255',
+            'section' => 'sometimes|string|max:255',
+            'car_plate_number' => 'nullable|string|max:255',
+            'reservation_number' => 'sometimes|string|max:255',
+            'ref_no' => 'nullable|string|max:255',
+            'entry_time' => 'nullable|date',
+            'exit_time' => 'nullable|date',
+            'check_in' => 'nullable|date',
+            'check_out' => 'nullable|date',
+            'contact_id' => 'nullable|exists:contacts,id',
+            'contact_person_id' => 'nullable|exists:contact_persons,id',
+            'phone_number' => 'nullable|string|max:255',
+            'kids_count' => 'sometimes|integer|min:0',
+            'infants_count' => 'sometimes|integer|min:0',
+            'adults_count' => 'sometimes|integer|min:1',
+            'dream_pass_code' => 'nullable|string|max:255',
+            'is_express_check_in' => 'boolean',
+            'is_express_check_out' => 'boolean',
+            'type' => 'sometimes|in:corporate,leisure',
+            'entry_type' => 'sometimes|in:walk_in,drive_in',
+            'checked_in_by_user_id' => 'nullable|exists:users,id',
+            'created_by_user_id' => 'nullable|exists:users,id',
+            'checked_in_by_guard_id' => 'nullable|exists:users,id',
+            'cleared_bills' => 'nullable|array',
+            'cleared_bills.is_cleared' => 'nullable|boolean',
+            'cleared_bills.comments' => 'nullable|string',
+            'cleared_bills_by_user_id' => 'nullable|exists:users,id',
+            'cleared_by_house_keeping' => 'nullable|array',
+            'cleared_by_house_keeping.is_cleared' => 'nullable|boolean',
+            'cleared_by_house_keeping.comments' => 'nullable|string',
+            'cleared_by_house_keeping_user_id' => 'nullable|exists:users,id',
         ]);
 
         $guestReservation->update($data);
@@ -289,7 +291,7 @@ class GuestReservationController extends Controller
         ]);
 
         $guestReservation->update([
-            'entry_time'             => now(),
+            'entry_time' => now(),
             'checked_in_by_guard_id' => $data['checked_in_by_guard_id'] ?? null,
         ]);
 

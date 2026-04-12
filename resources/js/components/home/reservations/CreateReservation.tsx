@@ -26,6 +26,41 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+const generateReservationNumber = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
+type GuestReservationFormData = {
+    guest_name: string;
+    ref_no: string;
+    visitor_type: string;
+    section: string;
+    check_in: string;
+    check_out: string;
+    contact_id: string;
+    car_plate_number: string;
+    reservation_number: string;
+    contact_person_id: string;
+    phone_number: string;
+    kids_count: string;
+    infants_count: string;
+    adults_count: string;
+    is_express_check_in: boolean;
+    type: 'corporate' | 'leisure';
+    entry_type: 'walk_in' | 'drive_in';
+    checked_in_by_user_id: string;
+    selectedContact: Contact | null;
+    selectedContactPerson: ContactPerson | null;
+    is_express_check_out: boolean;
+    cleared_bills: boolean;
+    cleared_bills_comments: string;
+    cleared_bills_by_user_id: string;
+    cleared_by_house_keeping: boolean;
+    cleared_by_house_keeping_comments: string;
+    cleared_by_house_keeping_user_id: string;
+    entry_time: string;
+    exit_time: string;
+};
 
 interface CreateGuestReservationProps {
     reservationId?: string | null;
@@ -33,6 +68,7 @@ interface CreateGuestReservationProps {
     activeTab: string;
     onSuccessfulSubmit: () => void;
     onCancel?: () => void;
+    initialData?: Partial<GuestReservationFormData> | null;
 }
 
 interface Contact {
@@ -69,11 +105,6 @@ export const VISITOR_TYPES = [
     { value: 'Contractor', label: 'Contractor', icon: '👷' },
     { value: 'Resident', label: 'Resident', icon: '🏠' },
 ];
-
-const generateReservationNumber = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-};
 
 const filterOptions = <T,>(options: T[], query: string, getLabel: (option: T) => string): T[] => {
     if (!query || query.length < 3) return options;
@@ -221,11 +252,12 @@ const inputClass =
 const selectClass =
     'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 transition-all duration-200 focus:border-[#93723c]/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#902729]/50 appearance-none cursor-pointer';
 
-const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reservationId, onSuccessfulSubmit, onCancel }) => {
+const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reservationId, onSuccessfulSubmit, onCancel, initialData }) => {
     const { isAuthenticated, user } = useAuth();
     const isEditMode = !!reservationId;
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<GuestReservationFormData>({
         guest_name: '',
+        ref_no: '',
         visitor_type: 'Visitor',
         section: '',
         check_in: '',
@@ -236,14 +268,14 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
         contact_person_id: '',
         phone_number: '',
         kids_count: '',
-        infants_count: '',
+        infants_count: '0',
         adults_count: '',
         is_express_check_in: false,
-        type: 'corporate' as 'corporate' | 'leisure',
-        entry_type: 'walk_in' as 'walk_in' | 'drive_in',
+        type: 'corporate',
+        entry_type: 'walk_in',
         checked_in_by_user_id: '',
-        selectedContact: null as Contact | null,
-        selectedContactPerson: null as ContactPerson | null,
+        selectedContact: null,
+        selectedContactPerson: null,
         is_express_check_out: false,
         cleared_bills: false,
         cleared_bills_comments: '',
@@ -254,7 +286,6 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
         entry_time: '',
         exit_time: '',
     });
-
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [allContactPersons, setAllContactPersons] = useState<ContactPerson[]>([]);
     const [appUsers, setAppUsers] = useState<AppUser[]>([]);
@@ -318,13 +349,15 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
     }, []);
 
     useEffect(() => {
-        if (!isEditMode || appUsers.length === 0 || contacts.length === 0) return;
+        if (!isEditMode || appUsers.length === 0 || contacts.length === 0 || allContactPersons.length === 0) return;
         const fetchReservation = async () => {
             setIsFetchingReservation(true);
             try {
                 const { data } = await axios.get(`/api/guest-reservations/${reservationId}`);
                 const guestData = data.data;
-                console.log('Fetched reservation data:', guestData);
+                const foundContact = contacts.find((c) => c.id === guestData.contact_id) || null;
+                const foundContactPerson = allContactPersons.find((p) => p.id === guestData.contact_person_id) || null;
+
                 setFormData((prev) => ({
                     ...prev,
                     guest_name: guestData.guest_name || '',
@@ -353,9 +386,16 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
                     cleared_by_house_keeping_user_id: guestData.cleared_by_house_keeping_user_id || '',
                     entry_time: guestData.entry_time ? guestData.entry_time.substring(0, 16) : '',
                     exit_time: guestData.exit_time ? guestData.exit_time.substring(0, 16) : '',
-                    selectedContact: contacts.find((c) => c.id === guestData.contact_id) || null,
-                    selectedContactPerson: allContactPersons.find((p) => p.id === guestData.contact_person_id) || null,
+                    selectedContact: foundContact,
+                    selectedContactPerson: foundContactPerson,
                 }));
+
+                if (guestData.contact_id) {
+                    setContactSearchQuery(foundContact?.institution || '');
+                }
+                if (foundContactPerson) {
+                    setContactPersonSearchQuery([foundContactPerson.first_name, foundContactPerson.last_name].filter(Boolean).join(' ').trim());
+                }
                 if (guestData.checked_in_by_user_id) {
                     const foundUser = appUsers.find((u) => u.id === guestData.checked_in_by_user_id);
                     if (foundUser) setCheckedInByQuery(foundUser.name);
@@ -375,8 +415,35 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
             }
         };
         fetchReservation();
-    }, [reservationId, isEditMode]);
+    }, [reservationId, isEditMode, appUsers.length, contacts.length, allContactPersons.length]);
 
+    useEffect(() => {
+        if (!initialData || isEditMode) return;
+        setFormData((prev) => ({
+            ...prev,
+            guest_name: initialData.guest_name || '',
+            ref_no: initialData.ref_no || '',
+            visitor_type: initialData.visitor_type || 'Visitor',
+            check_in: initialData.check_in || '',
+            check_out: initialData.check_out || '',
+            contact_id: initialData.contact_id || '',
+            contact_person_id: initialData.contact_person_id || '',
+            phone_number: initialData.phone_number || '',
+            adults_count: initialData.adults_count || '',
+            kids_count: initialData.kids_count || '',
+            type: initialData.type || 'corporate',
+            selectedContact: initialData.selectedContact || null,
+            selectedContactPerson: initialData.selectedContactPerson || null,
+        }));
+        if (initialData.selectedContact?.institution) {
+            setContactSearchQuery(initialData.selectedContact.institution);
+        }
+        if (initialData.selectedContactPerson) {
+            setContactPersonSearchQuery(
+                [initialData.selectedContactPerson.first_name, initialData.selectedContactPerson.last_name].filter(Boolean).join(' ').trim(),
+            );
+        }
+    }, [initialData]);
     useEffect(() => {
         if (formData.is_express_check_in && user?.id) {
             setFormData((prev) => ({ ...prev, checked_in_by_user_id: user.id }));
@@ -426,6 +493,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
     const resetForm = () => {
         setFormData({
             guest_name: '',
+            ref_no: '',
             visitor_type: '',
             section: '',
             check_in: '',
@@ -490,6 +558,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
         const payload: Record<string, any> = {
             guest_name: formData.guest_name,
             visitor_type: formData.visitor_type,
+            ref_no: formData.ref_no || null,
             section: formData.section,
             check_in: formData.check_in,
             check_out: formData.check_out,

@@ -231,38 +231,49 @@ class QuotationController extends Controller
             'customEnd' => $request->input('customEnd'),
         ];
 
-        $query = Quotation::query();
+        $query = Quotation::query()
+            ->leftJoin('guest_reservations', function ($join) {
+                $join->whereRaw(
+                    "guest_reservations.ref_no = JSON_UNQUOTE(JSON_EXTRACT(quotations.quotation_details, '$.refNo'))"
+                );
+            })
+            ->select('quotations.*', 'guest_reservations.id as reservation_id');
 
         if (!empty($searchQuery)) {
             $trimmedQuery = trim($searchQuery);
-            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotation_details, '$.name')) LIKE ?", ["%{$trimmedQuery}%"])
-                ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotation_details, '$.institutionName')) LIKE ?", ["%{$trimmedQuery}%"])
-                ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotation_details, '$.refNo')) LIKE ?", ["%{$trimmedQuery}%"])
-                ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotation_details, '$.phone')) LIKE ?", ["%{$trimmedQuery}%"])
-                ->orWhereHas('contact', function ($q) use ($trimmedQuery) {
-                    $q->where('institution', 'like', "%{$trimmedQuery}%");
-                })
-                ->orWhereHas('contactPerson', function ($q) use ($trimmedQuery) {
-                    $q->where('first_name', 'like', "%{$trimmedQuery}%")
-                        ->orWhere('last_name', 'like', "%{$trimmedQuery}%")
-                        ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$trimmedQuery}%"]);
-                });
+            $query->where(function ($q) use ($trimmedQuery) {
+                $q->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotations.quotation_details, '$.name')) LIKE ?", ["%{$trimmedQuery}%"])
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotations.quotation_details, '$.institutionName')) LIKE ?", ["%{$trimmedQuery}%"])
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotations.quotation_details, '$.refNo')) LIKE ?", ["%{$trimmedQuery}%"])
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotations.quotation_details, '$.phone')) LIKE ?", ["%{$trimmedQuery}%"])
+                    ->orWhereHas('contact', function ($q) use ($trimmedQuery) {
+                        $q->where('institution', 'like', "%{$trimmedQuery}%");
+                    })
+                    ->orWhereHas('contactPerson', function ($q) use ($trimmedQuery) {
+                        $q->where('first_name', 'like', "%{$trimmedQuery}%")
+                            ->orWhere('last_name', 'like', "%{$trimmedQuery}%")
+                            ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$trimmedQuery}%"]);
+                    });
+            });
         }
 
         if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+            $query->where('quotations.status', $filters['status']);
         }
+
         if (!empty($userId)) {
-            $query->where('user_id', $userId);
+            $query->where('quotations.user_id', $userId);
         }
 
         if (!empty($filters['created_by'])) {
-            $query->where('user_id', $filters['created_by']);
+            $query->where('quotations.user_id', $filters['created_by']);
         }
+
         if (!empty($filters['prepared_by'])) {
             $preparedBy = $filters['prepared_by'];
-            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotation_details, '$.preparedBy')) LIKE ?", ["%{$preparedBy}%"]);
+            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(quotations.quotation_details, '$.preparedBy')) LIKE ?", ["%{$preparedBy}%"]);
         }
+
         if (!empty($filters['dateField']) && !empty($filters['dateRange'])) {
             $field = $filters['dateField'];
             $range = $filters['dateRange'];
@@ -292,12 +303,11 @@ class QuotationController extends Controller
 
             if ($startDate) {
                 $dbField = match ($field) {
-                    'created_at' => 'created_at',
-                    'updated_at' => 'updated_at',
-                    'approved_on' => 'approved_on',
-                    default => 'created_at'
+                    'created_at' => 'quotations.created_at',
+                    'updated_at' => 'quotations.updated_at',
+                    'approved_on' => 'quotations.approved_on',
+                    default => 'quotations.created_at'
                 };
-
                 $query->whereBetween($dbField, [$startDate, $endDate]);
             }
         }
@@ -306,7 +316,7 @@ class QuotationController extends Controller
             'user:id,signature',
             'contact:id,institution',
             'contactPerson:id,first_name,last_name,phone,email'
-        ])->orderBy('created_at', 'desc')->get();
+        ])->orderBy('quotations.created_at', 'desc')->get();
 
         return response()->json($results);
     }

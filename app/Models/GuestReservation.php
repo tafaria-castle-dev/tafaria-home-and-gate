@@ -8,6 +8,7 @@ class GuestReservation extends Model
 {
     protected $fillable = [
         'guest_name',
+        'ref_no',
         'visitor_type',
         'section',
         'entry_time',

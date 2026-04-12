@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
     ArrowDown,
     ArrowUp,
+    CalendarPlus,
     ChevronDown,
     ChevronUp,
     Download,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import CreateGuestReservation from '../reservations/CreateReservation';
 import Quotation from './Quotation';
 
 const formatTimestampToDate = (timestamp: string) => {
@@ -106,7 +108,8 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
     const [users, setUsers] = useState<any[]>([]);
     const [isUsersLoading, setIsUsersLoading] = useState(false);
     const filterRef = useRef<HTMLDivElement>(null);
-
+    const [reservationQuotation, setReservationQuotation] = useState<any>(null);
+    const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
     const fetchQuotations = useCallback(async () => {
         setIsFetching(true);
         try {
@@ -620,6 +623,65 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
         return null;
     }
 
+    const isCheckInInPast = (checkIn: string) => {
+        if (!checkIn) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return new Date(checkIn) < today;
+    };
+    const mapQuotationToReservation = (quotation: any) => {
+        const details = quotation.quotation_details;
+        const isLeisure = details.selectedType?.toLowerCase() === 'leisure';
+        const contactPerson = quotation.contact_person;
+        const contact = quotation.contact;
+
+        const guestName = contactPerson
+            ? [contactPerson.first_name, contactPerson.last_name].filter(Boolean).join(' ').trim()
+            : details.institutionName || details.name || '';
+
+        const phone = contactPerson?.phone || details.phone || '';
+        const kidsCount = Array.isArray(details.kids) ? details.kids.length : 0;
+
+        return {
+            guest_name: guestName,
+            ref_no: details.refNo || '',
+            type: isLeisure ? 'leisure' : 'corporate',
+            check_in: details.checkIn || '',
+            check_out: details.checkOut || '',
+            contact_id: quotation.contact_id || '',
+            contact_person_id: quotation.contact_person_id || '',
+            phone_number: phone,
+            adults_count: details.adults?.toString() || '1',
+            kids_count: kidsCount.toString(),
+            infants_count: '0',
+            visitor_type: isLeisure ? 'Visitor' : 'Visitor',
+            section: 'accommodation',
+            car_plate_number: '',
+            is_express_check_in: false,
+            is_express_check_out: false,
+            entry_type: 'walk_in' as const,
+            cleared_bills: false,
+            cleared_bills_comments: '',
+            cleared_bills_by_user_id: '',
+            cleared_by_house_keeping: false,
+            cleared_by_house_keeping_comments: '',
+            cleared_by_house_keeping_user_id: '',
+            checked_in_by_user_id: '',
+            entry_time: '',
+            exit_time: '',
+            selectedContact: contact ? { id: contact.id, institution: contact.institution, type: 'INSTITUTION', contactPersons: [] } : null,
+            selectedContactPerson: contactPerson
+                ? {
+                      id: contactPerson.id,
+                      first_name: contactPerson.first_name,
+                      last_name: contactPerson.last_name,
+                      email: contactPerson.email || '',
+                      phone: contactPerson.phone || '',
+                      contact_id: quotation.contact_id || '',
+                  }
+                : null,
+        };
+    };
     return (
         <div className="mt-4 px-2 sm:px-4">
             <div className="mb-6 flex flex-col items-center gap-3 sm:flex-row">
@@ -907,6 +969,38 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                             </p>
                                         </div>
                                         <div className="flex space-x-2">
+                                            {quotation.status !== 'approved' ? (
+                                                <span className="flex items-center gap-1 text-xs font-medium text-gray-400">Not Approved</span>
+                                            ) : !quotation.reservation_id &&
+                                              quotation.quotation_details.checkIn &&
+                                              !isCheckInInPast(quotation.quotation_details.checkIn) ? (
+                                                <button
+                                                    onClick={() => {
+                                                        setReservationQuotation(mapQuotationToReservation(quotation));
+                                                        setIsReservationModalOpen(true);
+                                                    }}
+                                                    className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+                                                    title="Create Reservation"
+                                                >
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
+                                                    Reserve
+                                                </button>
+                                            ) : quotation.reservation_id ? (
+                                                <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
+                                                    Reserved
+                                                </span>
+                                            ) : !quotation.quotation_details.checkIn ? (
+                                                <span className="flex items-center gap-1 text-xs font-medium text-gray-400">
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
+                                                    No Check-in Date
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1 text-xs font-medium text-red-400">
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
+                                                    Expired
+                                                </span>
+                                            )}
                                             <button
                                                 onClick={() =>
                                                     handleOpenPDF(
@@ -988,8 +1082,8 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                                     ))}
                                             </div>
                                         </th>
-                                        <th
-                                            className="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
+                                        {/* <th
+                                            className="w-28 cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
                                             onClick={() => handleSort('phone')}
                                         >
                                             <div className="flex items-center">
@@ -1001,7 +1095,7 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                                         <ArrowUp size={16} className="ml-1" />
                                                     ))}
                                             </div>
-                                        </th>
+                                        </th> */}
                                         <th
                                             className="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
                                             onClick={() => handleSort('adults')}
@@ -1063,6 +1157,9 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                                 <div className="flex items-center">Prepared by</div>
                                             </th>
                                         )}
+                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                                            Reservation
+                                        </th>
                                         <th className="px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
@@ -1075,20 +1172,29 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                             <td className="px-4 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
                                                 {quotation.quotation_details.refNo}
                                             </td>
-                                            <td className="px-4 py-4 text-sm whitespace-nowrap text-gray-500">
-                                                {quotation.contact ? quotation.contact_person?.phone : quotation.quotation_details.phone}
-                                            </td>
+                                            {/* <td className="w-28 px-4 py-3">
+                                                <span className="block w-28 text-sm break-all whitespace-normal text-gray-900">
+                                                    {quotation.contact ? quotation.contact_person?.phone : quotation.quotation_details.phone}
+                                                </span>
+                                            </td> */}
                                             <td className="px-4 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {quotation.quotation_details.adults}
                                             </td>
-                                            <td className="px-4 py-4 text-sm text-gray-500">
-                                                {quotation.contact
-                                                    ? quotation.contact?.institution ||
-                                                      [quotation.contact_person?.first_name, quotation.contact_person?.last_name]
-                                                          .filter(Boolean)
-                                                          .join(' ')
-                                                          .trim()
-                                                    : quotation.quotation_details?.institutionName || quotation.quotation_details?.name}
+                                            <td className="px-4 py-4 text-sm">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-medium text-gray-900">
+                                                        {quotation.contact
+                                                            ? quotation.contact?.institution ||
+                                                              [quotation.contact_person?.first_name, quotation.contact_person?.last_name]
+                                                                  .filter(Boolean)
+                                                                  .join(' ')
+                                                                  .trim()
+                                                            : quotation.quotation_details?.institutionName || quotation.quotation_details?.name}
+                                                    </span>
+                                                    <span className="text-gray-6 00 text-xs">
+                                                        {quotation.contact ? quotation.contact_person?.phone : quotation.quotation_details.phone}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="px-4 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {quotation.quotation_details.selectedType}
@@ -1113,6 +1219,42 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                                     {quotation.quotation_details.preparedBy}
                                                 </td>
                                             )}
+
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                {quotation.status !== 'approved' ? (
+                                                    <span className="flex items-center gap-1 text-xs font-medium text-gray-400">Not Approved</span>
+                                                ) : !quotation.reservation_id &&
+                                                  quotation.quotation_details.checkIn &&
+                                                  !isCheckInInPast(quotation.quotation_details.checkIn) ? (
+                                                    <button
+                                                        onClick={() => {
+                                                            setReservationQuotation(mapQuotationToReservation(quotation));
+                                                            setIsReservationModalOpen(true);
+                                                        }}
+                                                        className="flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+                                                        title="Create Reservation"
+                                                    >
+                                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                                        Reserve
+                                                    </button>
+                                                ) : quotation.reservation_id ? (
+                                                    <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                                        Reserved
+                                                    </span>
+                                                ) : !quotation.quotation_details.checkIn ? (
+                                                    <span className="flex items-center gap-1 text-xs font-medium text-gray-400">
+                                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                                        No Check-in Date
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center gap-1 text-xs font-medium text-red-400">
+                                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                                        Expired
+                                                    </span>
+                                                )}
+                                            </td>
+
                                             <td className="px-4 py-4 text-right text-sm font-medium whitespace-nowrap">
                                                 <div className="flex items-center justify-end space-x-2">
                                                     {['admin'].includes(user?.role || '') && (
@@ -1401,6 +1543,38 @@ const ViewQuotations: React.FC<ViewQuotationsProps> = ({ setEdit, setActiveTab, 
                                 )}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {isReservationModalOpen && reservationQuotation && (
+                <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 py-8">
+                    <div className="relative mx-4 w-full max-w-4xl rounded-2xl bg-white shadow-2xl">
+                        <button
+                            onClick={() => {
+                                setIsReservationModalOpen(false);
+                                setReservationQuotation(null);
+                            }}
+                            className="absolute top-4 right-4 z-10 rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                        <CreateGuestReservation
+                            reservationId={null}
+                            setActiveTab={setActiveTab}
+                            activeTab={activeTab}
+                            initialData={reservationQuotation}
+                            onSuccessfulSubmit={() => {
+                                setIsReservationModalOpen(false);
+                                setReservationQuotation(null);
+                                fetchQuotations();
+                                toast.success('Reservation created from quotation!');
+                            }}
+                            onCancel={() => {
+                                setIsReservationModalOpen(false);
+                                setReservationQuotation(null);
+                            }}
+                        />
                     </div>
                 </div>
             )}
