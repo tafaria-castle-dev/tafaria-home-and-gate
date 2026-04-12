@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import CreateDreamPass from '../dreamPasses/CreateDreamPass';
 import { SECTIONS } from '../reservations/CreateReservation';
 
 interface GuestReservation {
@@ -179,7 +180,8 @@ export default function ViewGuests() {
         customEnd?: string;
     }>({ status: 'checked_in' });
     const [tempFilters, setTempFilters] = useState<typeof filters>({ status: 'checked_in' });
-
+    const [isDreamPassModalOpen, setIsDreamPassModalOpen] = useState(false);
+    const [dreamPassGuest, setDreamPassGuest] = useState<GuestReservation | null>(null);
     const fetchReservations = useCallback(
         async (page = 1) => {
             setIsFetching(true);
@@ -220,7 +222,10 @@ export default function ViewGuests() {
     useEffect(() => {
         fetchReservations(1);
     }, [fetchReservations]);
-
+    const handleOpenDreamPass = (r: GuestReservation) => {
+        setDreamPassGuest(r);
+        setIsDreamPassModalOpen(true);
+    };
     const sortedReservations = useMemo(() => {
         return [...reservations].sort((a, b) => {
             let va: any, vb: any;
@@ -847,6 +852,7 @@ export default function ViewGuests() {
                                             { field: 'entry_time', label: 'Entry' },
                                             { field: 'check_out', label: 'Check-Out' },
                                             { field: 'duration', label: 'Duration' },
+                                            { field: 'dream_passes', label: 'Dream Passes' },
                                             { field: null, label: 'Bills' },
                                             { field: null, label: 'HK' },
                                             { field: null, label: '' },
@@ -884,6 +890,7 @@ export default function ViewGuests() {
                                                 setActionGuest(r);
                                                 setIsHousekeepingModalOpen(true);
                                             }}
+                                            handleOpenDreamPass={handleOpenDreamPass}
                                         />
                                     ))}
                                 </tbody>
@@ -1195,6 +1202,39 @@ export default function ViewGuests() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {isDreamPassModalOpen && dreamPassGuest && (
+                <div
+                    className="modal-overlay"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsDreamPassModalOpen(false);
+                    }}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        style={{
+                            background: 'white',
+                            borderRadius: 20,
+                            maxWidth: 900,
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                        }}
+                    >
+                        <CreateDreamPass
+                            activeTab="create"
+                            setActiveTab={() => {}}
+                            onClose={() => setIsDreamPassModalOpen(false)}
+                            prefillData={{
+                                reservationNumber: dreamPassGuest.reservation_number,
+                                checkIn: dreamPassGuest.check_in ?? undefined,
+                                checkOut: dreamPassGuest.check_out ?? undefined,
+                                guestName: getGuestDisplayName(dreamPassGuest),
+                            }}
+                        />
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }
@@ -1206,6 +1246,7 @@ function GuestRow({
     onCheckOut,
     onClearBills,
     onClearHousekeeping,
+    handleOpenDreamPass,
 }: {
     r: GuestReservation;
     idx: number;
@@ -1213,6 +1254,7 @@ function GuestRow({
     onCheckOut: () => void;
     onClearBills: () => void;
     onClearHousekeeping: () => void;
+    handleOpenDreamPass: (r: GuestReservation) => void;
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -1257,6 +1299,7 @@ function GuestRow({
                         <p className="dm text-xs" style={{ color: '#9a8060' }}>
                             #{r.reservation_number}
                         </p>
+
                         {r.phone_number && (
                             <p className="dm text-xs" style={{ color: '#b0957a' }}>
                                 {r.phone_number}
@@ -1329,6 +1372,18 @@ function GuestRow({
                     <span className="dm text-sm font-semibold" style={{ color: '#3d2c1a' }}>
                         {formatDuration(duration)}
                     </span>
+                </div>
+            </td>
+            <td className="td-cell">
+                <div className="flex items-center gap-1.5">
+                    <button
+                        className="flex items-center gap-1 rounded-md bg-[#902729] px-2 py-1 text-xs text-white"
+                        onClick={() => {
+                            handleOpenDreamPass(r);
+                        }}
+                    >
+                        Create DreamPass
+                    </button>
                 </div>
             </td>
             <td className="td-cell">

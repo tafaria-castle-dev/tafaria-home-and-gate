@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUp, CheckCheck, CheckCircle2, ChevronDown, Clock, Edit3
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FormData } from './CreateDreamPass';
-
+import DreamPassDetailModal, { DreamPass } from './DreamPassDetailsModal';
 interface ViewDreamPassProps {
     setEdit: (val: boolean) => void;
     setActiveTab: (tab: string) => void;
@@ -21,12 +21,12 @@ const ViewDreamPasses: React.FC<ViewDreamPassProps> = ({ setEdit, setActiveTab }
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState<{ status?: string }>({});
     const [tempFilters, setTempFilters] = useState<{ status?: string }>({});
-    const [selectedDreamPass, setSelectedDreamPass] = useState<any>(null);
+    const [selectedDreamPass, setSelectedDreamPass] = useState<DreamPass | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [dreamPassToDelete, setDreamPassToDelete] = useState<string | null>(null);
     const [isStatusChanging, setIsStatusChanging] = useState(false);
     const [currentChangingId, setCurrentChangingId] = useState<string | null>(null);
-    const [dreamPasses, setDreamPasses] = useState<any[]>([]);
+    const [dreamPasses, setDreamPasses] = useState<DreamPass[]>([]);
     const [isFetching, setIsFetching] = useState(false);
     const [passcode, setPasscode] = useState('');
     const [redeemingActivity, setRedeemingActivity] = useState<string | null>(null);
@@ -69,14 +69,19 @@ const ViewDreamPasses: React.FC<ViewDreamPassProps> = ({ setEdit, setActiveTab }
 
     const sortedDreamPasses = useMemo(() => {
         return [...filteredDreamPasses].sort((a, b) => {
-            let aVal = a[sortField];
-            let bVal = b[sortField];
-            if (sortField === 'created_at' || sortField === 'check_in_date' || sortField === 'check_out_date') {
-                aVal = new Date(aVal).getTime();
-                bVal = new Date(bVal).getTime();
+            const isDateField = sortField === 'created_at' || sortField === 'check_in_date' || sortField === 'check_out_date';
+
+            if (isDateField) {
+                const aStr = a[sortField as 'created_at' | 'check_in_date' | 'check_out_date'];
+                const bStr = b[sortField as 'created_at' | 'check_in_date' | 'check_out_date'];
+                const aTime = aStr ? new Date(aStr).getTime() : 0;
+                const bTime = bStr ? new Date(bStr).getTime() : 0;
+                return sortDirection === 'desc' ? bTime - aTime : aTime - bTime;
             }
-            if (sortDirection === 'desc') return bVal > aVal ? 1 : -1;
-            return aVal > bVal ? 1 : -1;
+
+            const aVal = String(a[sortField as keyof DreamPass] ?? '');
+            const bVal = String(b[sortField as keyof DreamPass] ?? '');
+            return sortDirection === 'desc' ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
         });
     }, [filteredDreamPasses, sortField, sortDirection]);
 
@@ -669,156 +674,7 @@ const ViewDreamPasses: React.FC<ViewDreamPassProps> = ({ setEdit, setActiveTab }
                 </motion.div>
             </div>
 
-            {selectedDreamPass && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="shadow-3xl max-h-[95vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-white"
-                    >
-                        <div className="flex max-h-[95vh] flex-col">
-                            <div className="border-b border-gray-200 bg-gradient-to-r from-[#902729] to-[#7e1a1c] px-6 py-5 text-white">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-2xl font-bold">DreamPass Details</h2>
-                                        <p className="mt-1 text-indigo-100">
-                                            {selectedDreamPass.day_visit ? 'Pass' : 'Room'} {selectedDreamPass.room_number}
-                                        </p>
-                                    </div>
-                                    <button onClick={() => setSelectedDreamPass(null)} className="rounded-full p-3 transition hover:bg-white/20">
-                                        <X className="h-6 w-6" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-                                <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div className="rounded-2xl bg-gray-50 p-5">
-                                        <p className="text-sm font-medium text-gray-600">{selectedDreamPass.day_visit ? 'Pass' : 'Room'} Number</p>
-                                        <p className="mt-2 text-2xl font-bold text-gray-900">{selectedDreamPass.room_number}</p>
-                                        {selectedDreamPass.guest_name && (
-                                            <p className="mt-5 text-xl font-semibold text-gray-600">Guest Name: {selectedDreamPass.guest_name}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="rounded-2xl bg-gray-50 p-5">
-                                        <p className="text-sm font-medium text-gray-600">Approval Status</p>
-                                        <div className="mt-3 flex items-center gap-3">
-                                            {getStatusIcon(selectedDreamPass.status)}
-                                            <span className="text-2xl font-bold text-gray-900 capitalize">{selectedDreamPass.status}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {!selectedDreamPass.day_visit && (
-                                    <div className="mb-8 rounded-2xl bg-gray-50 p-5">
-                                        <p className="text-sm font-medium text-gray-600">Stay Period</p>
-                                        <p className="mt-2 text-lg font-semibold text-gray-900">
-                                            {format(new Date(selectedDreamPass.check_in_date), 'dd MMMM yyyy')}
-                                            <span className="mx-2 text-gray-500">→</span>
-                                            {format(new Date(selectedDreamPass.check_out_date), 'dd MMMM yyyy')}
-                                        </p>
-                                    </div>
-                                )}
-
-                                <section className="mb-10">
-                                    <h3 className="mb-5 text-xl font-bold text-gray-800">Activities</h3>
-                                    <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-                                        {selectedDreamPass.activities.map((act: any) => {
-                                            const redeemedToday =
-                                                act.redemptions?.filter(
-                                                    (r: any) => r.redeemed_at.slice(0, 10) === new Date().toISOString().slice(0, 10),
-                                                ).length || 0;
-                                            const remaining = (act.voucher_count || 1) - redeemedToday;
-                                            const isFullyRedeemedToday = remaining === 0 && (act.voucher_count || 1) > 0;
-
-                                            return (
-                                                <motion.div
-                                                    key={act.id}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    className={`relative overflow-hidden rounded-2xl border-4 p-6 shadow-md transition-all ${
-                                                        isFullyRedeemedToday ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-white'
-                                                    }`}
-                                                >
-                                                    {isFullyRedeemedToday && (
-                                                        <div className="absolute top-2 right-2 rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white shadow-md sm:top-4 sm:right-4 sm:px-4 sm:py-2 sm:text-sm">
-                                                            <CheckCircle2 className="inline h-4 w-4 sm:h-5 sm:w-5" /> Fully Redeemed
-                                                        </div>
-                                                    )}
-
-                                                    <h4 className="mb-4 text-xl font-bold text-gray-900">{act.activity_name}</h4>
-
-                                                    <div className="mb-5 grid grid-cols-3 gap-3">
-                                                        <div className="rounded-xl bg-gray-100 p-3 text-center">
-                                                            <p className="text-xs text-gray-600">Total</p>
-                                                            <p className="text-2xl font-extrabold text-gray-900">{act.voucher_count || 1}</p>
-                                                        </div>
-                                                        <div className="rounded-xl bg-red-50 p-3 text-center">
-                                                            <p className="text-xs text-red-700">Redeemed</p>
-                                                            <p className="text-2xl font-extrabold text-red-800">{redeemedToday}</p>
-                                                        </div>
-                                                        <div className="rounded-xl bg-green-50 p-3 text-center">
-                                                            <p className="text-xs text-green-700">Remaining</p>
-                                                            <p className="text-2xl font-extrabold text-green-800">{remaining}</p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="text-sm">
-                                                        <p className="text-gray-600">
-                                                            Valid:{' '}
-                                                            {!selectedDreamPass?.day_visit && (
-                                                                <>
-                                                                    <span className="font-semibold">
-                                                                        {format(new Date(act.valid_from), 'dd MMM yyyy')}
-                                                                    </span>
-                                                                    {' → '}
-                                                                </>
-                                                            )}
-                                                            <span className="font-semibold">{format(new Date(act.valid_to), 'dd MMM yyyy')}</span>
-                                                        </p>
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
-
-                                {selectedDreamPass.souvenir_discount && (
-                                    <section>
-                                        <h3 className="mb-5 text-xl font-bold text-gray-800">Souvenir Discount</h3>
-                                        <div className="rounded-2xl bg-gradient-to-br from-[#902729] to-[#7e1a1c] p-6">
-                                            <div className="grid grid-cols-1 gap-6 text-start md:grid-cols-3">
-                                                <div>
-                                                    <p className="text-sm font-medium text-indigo-700">Discount</p>
-                                                    <p className="mt-2 text-4xl font-extrabold text-indigo-800">
-                                                        {selectedDreamPass.souvenir_discount.discount_percentage}%
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-indigo-700">Valid Period</p>
-                                                    <p className="mt-2 text-lg font-semibold text-gray-800">
-                                                        {format(new Date(selectedDreamPass.souvenir_discount.valid_from), 'dd MMM yyyy')} →{' '}
-                                                        {format(new Date(selectedDreamPass.souvenir_discount.valid_to), 'dd MMM yyyy')}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-indigo-700">Applicable On</p>
-                                                    <p className="mt-2 text-base font-semibold text-gray-800">
-                                                        {selectedDreamPass.souvenir_discount.applicable_items?.length
-                                                            ? selectedDreamPass.souvenir_discount.applicable_items.join(', ')
-                                                            : 'All Souvenir Items'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            )}
+            {selectedDreamPass && <DreamPassDetailModal dreamPass={selectedDreamPass} onClose={() => setSelectedDreamPass(null)} />}
 
             {isDeleteModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

@@ -37,7 +37,12 @@ export interface FormData {
     activities: Activity[];
     souvenir: Souvenir;
 }
-
+interface PrefillData {
+    reservationNumber: string;
+    checkIn?: string;
+    checkOut?: string;
+    guestName?: string;
+}
 const activitiesList = ['Carriage Ride', 'Horse Ride', 'Mini Golf', 'Archery', 'Shop'];
 
 const defaultSouvenirItems = ['T-Shirt', 'Mug', 'Keychain', 'Cap', 'Postcard', 'Magnet', 'Sticker Pack'];
@@ -51,7 +56,12 @@ const generatePassCode = (): string => {
     return result;
 };
 
-const CreateDreamPass: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void }> = ({ activeTab, setActiveTab }) => {
+const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefillData?: PrefillData; setActiveTab: (tab: string) => void }> = ({
+    activeTab,
+    prefillData,
+    setActiveTab,
+    onClose,
+}) => {
     const { isAuthenticated } = useAuth();
     const [loadingDraft, setLoadingDraft] = useState(false);
     const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -94,7 +104,42 @@ const CreateDreamPass: React.FC<{ activeTab: string; setActiveTab: (tab: string)
             fetchData();
         }
     }, [isAuthenticated, fetchData]);
+    const toDateOnly = (d?: string) => (d ? d.split('T')[0] : '');
+    useEffect(() => {
+        if (!prefillData) return;
 
+        const { reservationNumber, checkIn, checkOut, guestName } = prefillData;
+        const safeCheckIn = toDateOnly(checkIn);
+        const safeCheckOut = toDateOnly(checkOut);
+        const dayVisit = (!!safeCheckIn && !safeCheckOut) || (safeCheckIn === safeCheckOut && safeCheckIn !== '');
+
+        setIsDayVisit(dayVisit);
+
+        if (dayVisit) {
+            setPassCode(reservationNumber);
+            setFormData((prev) => ({
+                ...prev,
+                guest_name: guestName || '',
+                checkIn: safeCheckIn,
+                checkOut: safeCheckIn,
+                activities: prev.activities.map((act) => ({
+                    ...act,
+                    validFrom: safeCheckIn,
+                    validTo: safeCheckIn,
+                })),
+                souvenir: { ...prev.souvenir, validFrom: safeCheckIn, validTo: safeCheckIn },
+            }));
+        } else {
+            setPassCode('');
+            setFormData((prev) => ({
+                ...prev,
+                roomNumber: reservationNumber,
+                guest_name: guestName || '',
+                checkIn: safeCheckIn,
+                checkOut: safeCheckOut,
+            }));
+        }
+    }, [prefillData]);
     useEffect(() => {
         if (activeTab === 'edit') {
             const saved = localStorage.getItem('editingDreamPass');
@@ -632,7 +677,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; setActiveTab: (tab: string)
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
-            <div className="mx-auto max-w-4xl">
+            <div className="mx-auto max-w-4xl" style={{ position: 'relative', padding: '24px' }}>
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -650,6 +695,24 @@ const CreateDreamPass: React.FC<{ activeTab: string; setActiveTab: (tab: string)
                                     className="rounded-lg bg-white px-4 py-2 font-medium text-indigo-700 transition hover:bg-gray-100"
                                 >
                                     Create Bulk Passes
+                                </button>
+                            )}
+                            {onClose && (
+                                <button
+                                    onClick={onClose}
+                                    className="shadow-4xl bg-[#902729]/50"
+                                    style={{
+                                        background: 'rgba(0,0,0,0.06)',
+                                        border: 'none',
+                                        borderRadius: 8,
+                                        padding: 16,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <X size={18} />
                                 </button>
                             )}
                         </div>
