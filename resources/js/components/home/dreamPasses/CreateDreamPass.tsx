@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface Activity {
+    id?: number;
     voucher_count: number;
     name: string;
     validFrom: string;
@@ -56,12 +57,13 @@ const generatePassCode = (): string => {
     return result;
 };
 
-const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefillData?: PrefillData; setActiveTab: (tab: string) => void }> = ({
-    activeTab,
-    prefillData,
-    setActiveTab,
-    onClose,
-}) => {
+const CreateDreamPass: React.FC<{
+    activeTab: string;
+    onClose?: () => void;
+    prefillData?: PrefillData;
+    onSuccess?: () => void;
+    setActiveTab: (tab: string) => void;
+}> = ({ activeTab, prefillData, setActiveTab, onClose, onSuccess }) => {
     const { isAuthenticated } = useAuth();
     const [loadingDraft, setLoadingDraft] = useState(false);
     const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -117,6 +119,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefi
 
         if (dayVisit) {
             setPassCode(reservationNumber);
+
             setFormData((prev) => ({
                 ...prev,
                 guest_name: guestName || '',
@@ -140,6 +143,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefi
             }));
         }
     }, [prefillData]);
+
     useEffect(() => {
         if (activeTab === 'edit') {
             const saved = localStorage.getItem('editingDreamPass');
@@ -183,7 +187,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefi
     }, [bulkData.period]);
 
     useEffect(() => {
-        if (isDayVisit) {
+        if (isDayVisit && !prefillData) {
             if (activeTab !== 'edit') {
                 const code = generatePassCode();
                 setPassCode(code);
@@ -451,6 +455,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefi
                     check_in_date: formData.checkIn,
                     check_out_date: formData.checkOut,
                     activities: formData.activities.map((act) => ({
+                        ...(activeTab === 'edit' && act.id ? { id: act.id } : {}),
                         activity_name: act.name,
                         valid_from: act.validFrom,
                         voucher_count: act.voucher_count,
@@ -558,6 +563,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefi
                 const response = await axios.post('/api/dream-passes', payload);
                 passId = response.data.id;
                 toast.success('DreamPass created successfully');
+                onSuccess && onSuccess();
             }
             await axios.post('/api/admin/create-dream-pass', {
                 refNo: `${effectiveRoomNumber}-${passId}`,
@@ -658,7 +664,7 @@ const CreateDreamPass: React.FC<{ activeTab: string; onClose?: () => void; prefi
         setBulkData((prev) => {
             const exists = prev.activities.includes(activityName);
             if (exists) {
-                return { ...prev, activities: prev.activities.filter((a) => a !== a) };
+                return { ...prev, activities: prev.activities.filter((a) => a !== activityName) };
             } else {
                 return { ...prev, activities: [...prev.activities, activityName] };
             }

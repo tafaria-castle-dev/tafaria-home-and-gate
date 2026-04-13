@@ -78,6 +78,24 @@ class DreamPassRedemptionController extends Controller
 
         $staff = Auth::user();
 
+        if (!$staff) {
+            $bearerToken = $request->bearerToken();
+            if (!$bearerToken) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+
+            $tokenRecord = \Laravel\Sanctum\PersonalAccessToken::findToken($bearerToken);
+            if (!$tokenRecord) {
+                return response()->json(['message' => 'Invalid token.'], 401);
+            }
+
+            $staff = $tokenRecord->tokenable;
+        }
+
+        if (!$staff) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         if (!Hash::check($request->staff_passcode, $staff->pass_code ?? '')) {
             return response()->json(['message' => 'Wrong passcode entered!'], 422);
         }

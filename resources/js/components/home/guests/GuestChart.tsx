@@ -23,34 +23,29 @@ interface GuestChartProps {
     customEnd?: string;
 }
 
-const HOURS = [
-    { label: '6AM', hour: 6 },
-    { label: '8AM', hour: 8 },
-    { label: '10AM', hour: 10 },
-    { label: '12PM', hour: 12 },
-    { label: '2PM', hour: 14 },
-    { label: '4PM', hour: 16 },
-    { label: '6PM', hour: 18 },
-    { label: '8PM', hour: 20 },
-];
+const HOURS = Array.from({ length: 17 }, (_, i) => {
+    const hour = i + 6;
+    return {
+        hour,
+        label: hour < 12 ? `${hour}AM` : hour === 12 ? '12PM' : `${hour - 12}PM`,
+    };
+});
 
-declare const Chart: any;
+import {
+    BarController,
+    BarElement,
+    CategoryScale,
+    Chart,
+    Filler,
+    Legend,
+    LinearScale,
+    LineController,
+    LineElement,
+    PointElement,
+    Tooltip,
+} from 'chart.js';
 
-function waitForChart(): Promise<void> {
-    return new Promise((resolve) => {
-        if (typeof Chart !== 'undefined') {
-            resolve();
-            return;
-        }
-        const interval = setInterval(() => {
-            if (typeof Chart !== 'undefined') {
-                clearInterval(interval);
-                resolve();
-            }
-        }, 100);
-        setTimeout(() => { clearInterval(interval); resolve(); }, 5000);
-    });
-}
+Chart.register(LineElement, BarElement, PointElement, LineController, BarController, CategoryScale, LinearScale, Filler, Tooltip, Legend);
 
 function formatDateLabel(dateStr: string): string {
     const d = new Date(dateStr + 'T00:00:00');
@@ -105,10 +100,7 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                     const bump = (field: string, key: 'checkIns' | 'checkOuts') => {
                         if (!r[field]) return;
                         const hour = new Date(r[field]).getHours();
-                        const idx = HOURS.findIndex((h, i) => {
-                            const next = HOURS[i + 1];
-                            return hour >= h.hour && (!next || hour < next.hour);
-                        });
+                        const idx = HOURS.findIndex((h) => h.hour === hour);
                         if (idx !== -1) slots[idx][key]++;
                     };
                     bump('entry_time', 'checkIns');
@@ -130,7 +122,6 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
         if (isFetching) return;
 
         const render = async () => {
-            await waitForChart();
             if (!canvasRef.current) return;
 
             if (chartRef.current) {
@@ -139,14 +130,18 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
             }
 
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const gridColor   = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-            const tickColor   = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)';
-            const tooltipBg   = isDark ? '#1c1b1a' : '#ffffff';
+            const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+            const tickColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)';
+            const tooltipBg = isDark ? '#1c1b1a' : '#ffffff';
             const tooltipBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 
             const commonScales = {
                 x: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } }, border: { display: false } },
-                y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, stepSize: 1, precision: 0 }, border: { display: false } },
+                y: {
+                    grid: { color: gridColor },
+                    ticks: { color: tickColor, font: { size: 11 }, stepSize: 1, precision: 0 },
+                    border: { display: false },
+                },
             };
             const commonTooltip = {
                 backgroundColor: tooltipBg,
@@ -156,7 +151,7 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                 bodyColor: isDark ? '#9c9a92' : '#73726c',
                 padding: 10,
                 cornerRadius: 8,
-                titleFont: { size: 12, weight: '600' },
+                titleFont: { size: 12, weight: 'bold' as const },
                 bodyFont: { size: 11 },
             };
 
@@ -225,15 +220,17 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                         type: 'bar',
                         data: {
                             labels,
-                            datasets: [{
-                                label: 'Net flow',
-                                data: hourlyData.map((d) => d.net),
-                                backgroundColor: hourlyData.map((d) => d.net >= 0 ? 'hsla(359,58%,36%,0.75)' : 'hsla(35,43%,40%,0.75)'),
-                                borderColor: hourlyData.map((d) => d.net >= 0 ? 'hsl(359,58%,36%)' : 'hsl(35,43%,40%)'),
-                                borderWidth: 1.5,
-                                borderRadius: 5,
-                                borderSkipped: false,
-                            }],
+                            datasets: [
+                                {
+                                    label: 'Net flow',
+                                    data: hourlyData.map((d) => d.net),
+                                    backgroundColor: hourlyData.map((d) => (d.net >= 0 ? 'hsla(359,58%,36%,0.75)' : 'hsla(35,43%,40%,0.75)')),
+                                    borderColor: hourlyData.map((d) => (d.net >= 0 ? 'hsl(359,58%,36%)' : 'hsl(35,43%,40%)')),
+                                    borderWidth: 1.5,
+                                    borderRadius: 5,
+                                    borderSkipped: false,
+                                },
+                            ],
                         },
                         options: {
                             responsive: true,
@@ -329,18 +326,22 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
         { mode: 'net', label: 'Net' },
     ];
 
-    const totalIn  = isToday ? hourlyData.reduce((s, d) => s + d.checkIns, 0)  : dailyData.reduce((s, d) => s + d.arrivals, 0);
+    const totalIn = isToday ? hourlyData.reduce((s, d) => s + d.checkIns, 0) : dailyData.reduce((s, d) => s + d.arrivals, 0);
     const totalOut = isToday ? hourlyData.reduce((s, d) => s + d.checkOuts, 0) : dailyData.reduce((s, d) => s + d.departures, 0);
     const peakLabel = isToday
         ? (hourlyData.reduce((best, d) => (d.checkIns > best.checkIns ? d : best), hourlyData[0])?.time ?? '—')
-        : (dailyData.reduce((best, d) => (d.arrivals > best.arrivals ? d : best), dailyData[0]) ? formatDateLabel(dailyData.reduce((best, d) => (d.arrivals > best.arrivals ? d : best), dailyData[0]).date) : '—');
+        : dailyData.reduce((best, d) => (d.arrivals > best.arrivals ? d : best), dailyData[0])
+          ? formatDateLabel(dailyData.reduce((best, d) => (d.arrivals > best.arrivals ? d : best), dailyData[0]).date)
+          : '—';
 
     return (
         <div className="animate-fade-in rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h3 className="font-serif text-lg font-semibold">Guest Flow</h3>
-                    <p className="text-sm text-muted-foreground">{isToday ? 'Check-in & check-out activity by hour' : 'Daily arrivals & departures'}</p>
+                    <p className="text-sm text-muted-foreground">
+                        {isToday ? 'Check-in & check-out activity by hour' : 'Daily arrivals & departures'}
+                    </p>
                 </div>
                 {isToday && (
                     <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
@@ -359,8 +360,8 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
 
             <div className="mb-4 grid grid-cols-3 gap-3">
                 {[
-                    { label: 'Total arrivals',   value: totalIn,    color: 'bg-primary' },
-                    { label: 'Total departures', value: totalOut,   color: 'bg-[hsl(35,43%,40%)]' },
+                    { label: 'Total arrivals', value: totalIn, color: 'bg-primary' },
+                    { label: 'Total departures', value: totalOut, color: 'bg-[hsl(35,43%,40%)]' },
                     { label: isToday ? 'Peak hour' : 'Peak day', value: peakLabel, color: 'bg-muted-foreground/50' },
                 ].map((s) => (
                     <div key={s.label} className="rounded-lg bg-muted/40 px-3 py-2.5">
@@ -382,9 +383,7 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                     <span className="h-2 w-6 rounded-full" style={{ backgroundColor: 'hsla(35,43%,40%,0.7)' }} />
                     <span className="text-muted-foreground">Departures</span>
                 </div>
-                {isToday && mode === 'net' && (
-                    <span className="text-muted-foreground">Brown = net outflow</span>
-                )}
+                {isToday && mode === 'net' && <span className="text-muted-foreground">Brown = net outflow</span>}
             </div>
 
             {isFetching ? (

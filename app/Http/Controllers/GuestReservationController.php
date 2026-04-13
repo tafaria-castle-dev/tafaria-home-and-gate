@@ -24,7 +24,14 @@ class GuestReservationController extends Controller
 
     public function index(Request $request)
     {
-        $query = GuestReservation::with($this->relations)->latest();
+        $query = GuestReservation::with($this->relations)
+            ->addSelect([
+                'dream_pass_id' => \App\Models\DreamPass::select('id')
+                    ->whereColumn('room_number', 'guest_reservations.reservation_number')
+                    ->orderByDesc('created_at')
+                    ->limit(1),
+            ])
+            ->latest('guest_reservations.created_at');
         $query = $this->applyFilters($query, $request);
 
         if ($request->filled('search')) {

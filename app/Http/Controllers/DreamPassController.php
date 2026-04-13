@@ -146,6 +146,7 @@ class DreamPassController extends Controller
                     DreamPassActivity::create([
                         'dream_pass_id' => $dreamPass->id,
                         'activity_name' => $act['activity_name'],
+                        'voucher_count' => $act['voucher_count'],
                         'valid_from' => $act['valid_from'],
                         'valid_to' => $act['valid_to'],
                     ]);

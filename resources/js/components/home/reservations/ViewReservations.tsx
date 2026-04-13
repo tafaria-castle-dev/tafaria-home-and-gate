@@ -45,9 +45,11 @@ interface ViewGuestReservationsProps {
     activeTab: string;
 }
 
-interface GuestReservation {
+export interface GuestReservation {
     id: string;
     guest_name: string;
+    dream_pass_id?: string | null;
+    ref_no?: string | null;
     section: string;
     entry_time?: string;
     exit_time?: string;
@@ -60,7 +62,7 @@ interface GuestReservation {
     phone_number?: string;
     kids_count?: number;
     infants_count?: number;
-    adults_count?: number;
+    adults_count: number;
     dream_pass_code?: string;
     is_express_check_in?: boolean;
     is_express_check_out?: boolean;
@@ -77,6 +79,9 @@ interface GuestReservation {
     checked_in_by_user?: { id: string; name: string };
     cleared_bills_by_user?: { id: string; name: string };
     cleared_by_house_keeping_user?: { id: string; name: string };
+    visit_count?: number;
+    total_hours_spent?: number;
+    entry_type?: 'walk_in' | 'drive_in';
 }
 
 const getSectionLabel = (val: string) => SECTIONS.find((s) => s.value === val)?.label ?? val;
@@ -107,7 +112,9 @@ const getNightCount = (checkIn?: string, checkOut?: string) => {
 };
 
 const getGuestDisplayName = (r: GuestReservation) =>
-    r.contact?.institution || (r.contact_person ? `${r.contact_person.first_name} ${r.contact_person.last_name}`.trim() : null) || r.guest_name;
+    r.contact?.institution ||
+    (r.contact_person ? `${r.contact_person.first_name || ''} ${r.contact_person.last_name || ''}`.trim() : null) ||
+    r.guest_name;
 
 const StatusBadge: React.FC<{ label: string; color: string }> = ({ label, color }) => (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${color}`}>{label}</span>

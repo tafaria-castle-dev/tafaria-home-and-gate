@@ -176,4 +176,14 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('guest-reservations', GuestReservationController::class)->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
 
 
+    Route::post('/dream-passes/redeem-activity', [DreamPassRedemptionController::class, 'redeemActivity'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+    Route::get('/dream-passes', [DreamPassController::class, 'index'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+    Route::get('/dream-passes/{id}', [DreamPassController::class, 'show'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+    Route::put('/dream-passes/{id}', [DreamPassController::class, 'update'])->withoutMiddleware([CheckAuthenticated::class, EnsureFrontendRequestsAreStateful::class]);
+
+
+
 });

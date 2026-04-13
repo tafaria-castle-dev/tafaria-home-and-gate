@@ -34,7 +34,7 @@ const formatRelative = (dateStr: string) => {
 
 const getGuestLabel = (r: any): string => {
     if (r.contact?.institution) return r.contact.institution;
-    if (r.contact_person) return `${r.contact_person.first_name} ${r.contact_person.last_name}`.trim();
+    if (r.contact_person) return `${r.contact_person.first_name || ''} ${r.contact_person.last_name || ''}`.trim();
     return r.guest_name ?? 'Unknown Guest';
 };
 

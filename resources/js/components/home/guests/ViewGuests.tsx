@@ -17,6 +17,7 @@ import {
     ChevronUp,
     Clock,
     Download,
+    Eye,
     Filter,
     Hotel,
     LogOut,
@@ -29,7 +30,6 @@ import {
     Shield,
     Sparkles,
     Star,
-    Timer,
     User,
     UserCheck,
     Users,
@@ -39,43 +39,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import CreateDreamPass from '../dreamPasses/CreateDreamPass';
+import DreamPassDetailsModal, { DreamPass } from '../dreamPasses/DreamPassDetailsModal';
 import { SECTIONS } from '../reservations/CreateReservation';
-
-interface GuestReservation {
-    id: string;
-    guest_name: string;
-    section: string;
-    entry_time?: string;
-    exit_time?: string;
-    check_in?: string;
-    check_out?: string;
-    contact_id?: string;
-    car_plate_number?: string;
-    reservation_number: string;
-    contact_person_id?: string;
-    phone_number?: string;
-    kids_count?: number;
-    adults_count?: number;
-    dream_pass_code?: string;
-    is_express_check_in?: boolean;
-    is_express_check_out?: boolean;
-    type: 'corporate' | 'leisure';
-    entry_type?: 'walk_in' | 'drive_in';
-    checked_in_by_user_id?: string;
-    cleared_bills?: { is_cleared?: boolean; comments?: string } | null;
-    cleared_bills_by_user_id?: string;
-    cleared_by_house_keeping?: { is_cleared?: boolean; comments?: string } | null;
-    cleared_by_house_keeping_user_id?: string;
-    created_at: string;
-    updated_at: string;
-    contact?: { id: string; institution: string };
-    contact_person?: { id: string; first_name: string; last_name: string; phone?: string; email?: string };
-    checked_in_by_user?: { id: string; name: string };
-    cleared_bills_by_user?: { id: string; name: string };
-    cleared_by_house_keeping_user?: { id: string; name: string };
-    visit_count?: number;
-    total_hours_spent?: number;
-}
+import { GuestReservation } from '../reservations/ViewReservations';
 
 interface Aggregations {
     total: number;
@@ -132,7 +98,9 @@ const getHoursSpent = (entry?: string, exit?: string) => {
 };
 
 const getGuestDisplayName = (r: GuestReservation) =>
-    r.contact?.institution || (r.contact_person ? `${r.contact_person.first_name} ${r.contact_person.last_name}`.trim() : null) || r.guest_name;
+    r.contact?.institution ||
+    (r.contact_person ? `${r.contact_person.first_name || ''} ${r.contact_person.last_name || ''}`.trim() : null) ||
+    r.guest_name;
 
 const getInitials = (name: string) =>
     name
@@ -218,7 +186,21 @@ export default function ViewGuests() {
         },
         [filters, searchQuery],
     );
-
+    const [isDreamPassDetailsModalOpen, setIsDreamPassDetailsModalOpen] = useState(false);
+    const [viewingDreamPass, setViewingDreamPass] = useState<DreamPass | null>(null);
+    const [isDreamPassDetailsFetching, setIsDreamPassDetailsFetching] = useState(false);
+    const handleViewDreamPass = async (dreamPassId: string) => {
+        setIsDreamPassDetailsFetching(true);
+        try {
+            const { data } = await axios.get(`/api/dream-passes/${dreamPassId}`);
+            setViewingDreamPass(data);
+            setIsDreamPassDetailsModalOpen(true);
+        } catch {
+            toast.error('Failed to load DreamPass details.');
+        } finally {
+            setIsDreamPassDetailsFetching(false);
+        }
+    };
     useEffect(() => {
         fetchReservations(1);
     }, [fetchReservations]);
@@ -372,19 +354,18 @@ export default function ViewGuests() {
             }}
         >
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
-                .dm { font-family: 'DM Sans', sans-serif; }
+                .dm {  }
                 .brand-grad { background: linear-gradient(135deg, #902729, #b83a3c); }
                 .gold-grad { background: linear-gradient(135deg, #93723c, #b8914d); }
                 .stat-card { background: white; border-radius: 16px; border: 1px solid rgba(147,114,60,0.15); box-shadow: 0 2px 12px rgba(144,39,41,0.06); transition: all 0.2s; }
                 .stat-card:hover { box-shadow: 0 8px 24px rgba(144,39,41,0.12); transform: translateY(-1px); }
                 .guest-row { transition: background 0.15s; border-bottom: 1px solid rgba(147,114,60,0.08); }
                 .guest-row:hover { background: rgba(147,114,60,0.04); }
-                .filter-pill { border-radius: 100px; border: 1.5px solid rgba(147,114,60,0.25); background: white; transition: all 0.15s; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 14px; color: #5a4a3a; }
+                .filter-pill { border-radius: 100px; border: 1.5px solid rgba(147,114,60,0.25); background: white; transition: all 0.15s; cursor: pointer;  font-size: 13px; padding: 6px 14px; color: #5a4a3a; }
                 .filter-pill:hover { border-color: #93723c; color: #93723c; }
                 .filter-pill.active { background: #93723c; border-color: #93723c; color: white; }
                 .filter-pill.active-red { background: #902729; border-color: #902729; color: white; }
-                .action-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; padding: 7px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; transition: all 0.15s; cursor: pointer; border: none; }
+                .action-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; padding: 7px 14px;  font-size: 13px; font-weight: 600; transition: all 0.15s; cursor: pointer; border: none; }
                 .btn-primary { background: linear-gradient(135deg, #902729, #b83a3c); color: white; }
                 .btn-primary:hover { box-shadow: 0 4px 12px rgba(144,39,41,0.35); transform: translateY(-1px); }
                 .btn-gold { background: linear-gradient(135deg, #93723c, #b8914d); color: white; }
@@ -393,25 +374,24 @@ export default function ViewGuests() {
                 .btn-outline:hover { border-color: #93723c; color: #93723c; }
                 .side-panel { position: fixed; right: 0; top: 0; height: 100vh; width: 420px; background: white; box-shadow: -8px 0 40px rgba(0,0,0,0.12); z-index: 100; overflow-y: auto; border-left: 1px solid rgba(147,114,60,0.15); }
                 .panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 99; backdrop-filter: blur(2px); }
-                .input-styled { width: 100%; border-radius: 10px; border: 1.5px solid rgba(147,114,60,0.2); background: white; padding: 9px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #2d1f0e; outline: none; transition: border 0.15s; }
+                .input-styled { width: 100%; border-radius: 10px; border: 1.5px solid rgba(147,114,60,0.2); background: white; padding: 9px 14px;  font-size: 13px; color: #2d1f0e; outline: none; transition: border 0.15s; }
                 .input-styled:focus { border-color: #93723c; box-shadow: 0 0 0 3px rgba(147,114,60,0.1); }
                 .select-styled { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2393723c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
                 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
                 .modal-box { background: white; border-radius: 20px; padding: 28px; width: 440px; max-width: 90vw; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-                .th-cell { padding: 12px 16px; text-align: left; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.85); cursor: pointer; user-select: none; white-space: nowrap; }
+                .th-cell { padding: 12px 16px; text-align: left;  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.85); cursor: pointer; user-select: none; white-space: nowrap; }
                 .th-cell:hover { color: white; }
                 .td-cell { padding: 14px 16px; vertical-align: middle; }
-                .avatar { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-                .badge-pill { display: inline-flex; align-items: center; border-radius: 100px; padding: 3px 10px; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+                .avatar { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center;  font-weight: 700; font-size: 13px; flex-shrink: 0; }
+                .badge-pill { display: inline-flex; align-items: center; border-radius: 100px; padding: 3px 10px;  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
                 .scrollbar-thin::-webkit-scrollbar { width: 4px; } .scrollbar-thin::-webkit-scrollbar-track { background: transparent; } .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(147,114,60,0.3); border-radius: 2px; }
-                .stat-number { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; line-height: 1; }
                 .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(147,114,60,0.08); }
-                .info-label { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #9a8060; }
-                .info-value { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: #2d1f0e; text-align: right; }
-                .section-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 8px; background: rgba(147,114,60,0.08); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: #6a5030; border: 1px solid rgba(147,114,60,0.15); }
+                .info-label {  font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #9a8060; }
+                .info-value {  font-size: 13px; font-weight: 500; color: #2d1f0e; text-align: right; }
+                .section-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 8px; background: rgba(147,114,60,0.08);  font-size: 12px; font-weight: 500; color: #6a5030; border: 1px solid rgba(147,114,60,0.15); }
                 .dots-menu { position: relative; }
                 .dots-dropdown { position: absolute; right: 0; top: calc(100% + 4px); background: white; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.14); border: 1px solid rgba(147,114,60,0.12); min-width: 180px; z-index: 50; overflow: hidden; }
-                .dots-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: #3d2c1a; cursor: pointer; transition: background 0.12s; border: none; background: none; width: 100%; text-align: left; }
+                .dots-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px;  font-size: 13px; font-weight: 500; color: #3d2c1a; cursor: pointer; transition: background 0.12s; border: none; background: none; width: 100%; text-align: left; }
                 .dots-item:hover { background: rgba(147,114,60,0.06); }
                 .dots-item.danger { color: #902729; }
                 .dots-item.danger:hover { background: rgba(144,39,41,0.05); }
@@ -508,28 +488,13 @@ export default function ViewGuests() {
                             color: '#059669',
                             bg: 'rgba(5,150,105,0.07)',
                         },
-                        {
-                            label: 'Avg Stay',
-                            value: formatDuration(aggregations?.avg_stay_hours),
-                            icon: <Timer size={16} />,
-                            color: '#93723c',
-                            bg: 'rgba(147,114,60,0.07)',
-                            isText: true,
-                        },
-                        {
-                            label: 'VIP Guests',
-                            value: aggregations?.vip ?? 0,
-                            icon: <Star size={16} />,
-                            color: '#93723c',
-                            bg: 'rgba(147,114,60,0.07)',
-                        },
                     ].map((card, i) => (
                         <div key={i} className="stat-card flex flex-col gap-2 p-4">
                             <div className="flex items-center justify-between">
                                 <span className="dm text-xs leading-tight font-semibold tracking-wider text-stone-400 uppercase">{card.label}</span>
                                 <div style={{ color: card.color, background: card.bg, borderRadius: 8, padding: 5 }}>{card.icon}</div>
                             </div>
-                            <div className="stat-number" style={{ fontSize: card.isText ? 20 : 28, color: card.color }}>
+                            <div className="stat-number" style={{ fontSize: 28, color: card.color }}>
                                 {card.value}
                             </div>
                         </div>
@@ -840,65 +805,111 @@ export default function ViewGuests() {
                             </p>
                         </div>
                     ) : (
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ minWidth: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ background: 'linear-gradient(135deg, #902729, #7a2124)' }}>
-                                        {[
-                                            { field: 'guest_name', label: 'Guest' },
-                                            { field: 'type', label: 'Type' },
-                                            { field: 'section', label: 'Section' },
-                                            { field: null, label: 'Party' },
-                                            { field: 'entry_time', label: 'Entry' },
-                                            { field: 'check_out', label: 'Check-Out' },
-                                            { field: 'duration', label: 'Duration' },
-                                            { field: 'dream_passes', label: 'Dream Passes' },
-                                            { field: null, label: 'Bills' },
-                                            { field: null, label: 'HK' },
-                                            { field: null, label: '' },
-                                        ].map((col, i) => (
-                                            <th
-                                                key={i}
-                                                className="th-cell"
-                                                onClick={() => col.field && handleSort(col.field)}
-                                                style={{ cursor: col.field ? 'pointer' : 'default' }}
-                                            >
-                                                <div className="flex items-center">
-                                                    {col.label}
-                                                    {col.field && <SortIcon field={col.field} />}
-                                                </div>
-                                            </th>
+                        <div style={{ position: 'relative' }}>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ minWidth: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: 'linear-gradient(135deg, #902729, #7a2124)' }}>
+                                            {[
+                                                { field: 'guest_name', label: 'Guest' },
+                                                { field: 'type', label: 'Type' },
+                                                { field: 'section', label: 'Section' },
+                                                { field: null, label: 'Party' },
+                                                { field: 'entry_time', label: 'Entry' },
+                                                { field: 'check_out', label: 'Check-Out' },
+                                                { field: 'duration', label: 'Duration' },
+                                                { field: 'dream_passes', label: 'Dream Passes' },
+                                                { field: null, label: 'Bills' },
+                                                { field: null, label: 'HK' },
+                                                { field: null, label: '' },
+                                            ].map((col, i) => (
+                                                <th
+                                                    key={i}
+                                                    className="th-cell"
+                                                    onClick={() => col.field && handleSort(col.field)}
+                                                    style={{ cursor: col.field ? 'pointer' : 'default' }}
+                                                >
+                                                    <div className="flex items-center">
+                                                        {col.label}
+                                                        {col.field && <SortIcon field={col.field} />}
+                                                    </div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedReservations.map((r, idx) => (
+                                            <GuestRow
+                                                key={r.id}
+                                                r={r}
+                                                idx={idx}
+                                                onView={() => handleViewGuest(r)}
+                                                onCheckOut={() => {
+                                                    setActionGuest(r);
+                                                    setIsCheckOutModalOpen(true);
+                                                }}
+                                                onClearBills={() => {
+                                                    setActionGuest(r);
+                                                    setIsClearBillsModalOpen(true);
+                                                }}
+                                                onClearHousekeeping={() => {
+                                                    setActionGuest(r);
+                                                    setIsHousekeepingModalOpen(true);
+                                                }}
+                                                handleOpenDreamPass={handleOpenDreamPass}
+                                                handleViewDreamPass={handleViewDreamPass}
+                                                isDreamPassDetailsFetching={isDreamPassDetailsFetching}
+                                            />
                                         ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sortedReservations.map((r, idx) => (
-                                        <GuestRow
-                                            key={r.id}
-                                            r={r}
-                                            idx={idx}
-                                            onView={() => handleViewGuest(r)}
-                                            onCheckOut={() => {
-                                                setActionGuest(r);
-                                                setIsCheckOutModalOpen(true);
+                                    </tbody>
+                                </table>
+                            </div>
+                            <AnimatePresence>
+                                {isDreamPassDetailsFetching && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            background: 'rgba(253,248,243,0.75)',
+                                            backdropFilter: 'blur(2px)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 14,
+                                            zIndex: 10,
+                                            borderRadius: 16,
+                                            pointerEvents: 'all',
+                                        }}
+                                    >
+                                        <motion.div
+                                            animate={{ rotate: 360 }}
+                                            transition={{ repeat: Infinity, duration: 0.9, ease: 'linear' }}
+                                            style={{
+                                                width: 44,
+                                                height: 44,
+                                                borderRadius: '50%',
+                                                border: '4px solid rgba(147,114,60,0.2)',
+                                                borderTopColor: '#93723c',
                                             }}
-                                            onClearBills={() => {
-                                                setActionGuest(r);
-                                                setIsClearBillsModalOpen(true);
-                                            }}
-                                            onClearHousekeeping={() => {
-                                                setActionGuest(r);
-                                                setIsHousekeepingModalOpen(true);
-                                            }}
-                                            handleOpenDreamPass={handleOpenDreamPass}
                                         />
-                                    ))}
-                                </tbody>
-                            </table>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <p className="dm" style={{ fontSize: 14, fontWeight: 600, color: '#3d2c1a' }}>
+                                                Loading DreamPass details…
+                                            </p>
+                                            <p className="dm" style={{ fontSize: 12, color: '#9a8060', marginTop: 4 }}>
+                                                Please wait while we fetch the pass
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     )}
 
-                    {/* Pagination */}
                     {!isFetching && lastPage > 1 && (
                         <div className="flex items-center justify-between px-5 py-4" style={{ borderTop: '1px solid rgba(147,114,60,0.1)' }}>
                             <span className="dm text-xs text-stone-400">
@@ -1225,6 +1236,10 @@ export default function ViewGuests() {
                             activeTab="create"
                             setActiveTab={() => {}}
                             onClose={() => setIsDreamPassModalOpen(false)}
+                            onSuccess={() => {
+                                setIsDreamPassModalOpen(false);
+                                fetchReservations(currentPage);
+                            }}
                             prefillData={{
                                 reservationNumber: dreamPassGuest.reservation_number,
                                 checkIn: dreamPassGuest.check_in ?? undefined,
@@ -1234,6 +1249,15 @@ export default function ViewGuests() {
                         />
                     </motion.div>
                 </div>
+            )}
+            {isDreamPassDetailsModalOpen && viewingDreamPass && (
+                <DreamPassDetailsModal
+                    dreamPass={viewingDreamPass}
+                    onClose={() => {
+                        setIsDreamPassDetailsModalOpen(false);
+                        setViewingDreamPass(null);
+                    }}
+                />
             )}
         </div>
     );
@@ -1247,6 +1271,8 @@ function GuestRow({
     onClearBills,
     onClearHousekeeping,
     handleOpenDreamPass,
+    handleViewDreamPass,
+    isDreamPassDetailsFetching,
 }: {
     r: GuestReservation;
     idx: number;
@@ -1255,6 +1281,8 @@ function GuestRow({
     onClearBills: () => void;
     onClearHousekeeping: () => void;
     handleOpenDreamPass: (r: GuestReservation) => void;
+    handleViewDreamPass: (id: string) => void;
+    isDreamPassDetailsFetching: boolean;
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -1321,14 +1349,22 @@ function GuestRow({
             </td>
             <td className="td-cell">
                 <div className="dm text-sm" style={{ color: '#3d2c1a' }}>
-                    <span className="font-semibold">{(r.adults_count ?? 0) + (r.kids_count ?? 0)}</span>
-                    <span style={{ color: '#9a8060' }}> pax</span>
+                    <span className="font-semibold">{r.adults_count ?? 0}</span>
+                    <span style={{ color: '#9a8060' }}> {r.adults_count > 1 ? 'Adults' : 'Adult'}</span>
                 </div>
                 {(r.kids_count ?? 0) > 0 && (
                     <div className="mt-0.5 flex items-center gap-1">
                         <Baby size={10} color="#93723c" />
                         <span className="dm text-xs" style={{ color: '#9a8060' }}>
-                            {r.kids_count} child
+                            {r.kids_count} Kids
+                        </span>
+                    </div>
+                )}
+                {(r.infants_count ?? 0) > 0 && (
+                    <div className="mt-0.5 flex items-center gap-1">
+                        <Baby size={10} color="#93723c" />
+                        <span className="dm text-xs" style={{ color: '#9a8060' }}>
+                            {r.infants_count} Infants
                         </span>
                     </div>
                 )}
@@ -1376,14 +1412,43 @@ function GuestRow({
             </td>
             <td className="td-cell">
                 <div className="flex items-center gap-1.5">
-                    <button
-                        className="flex items-center gap-1 rounded-md bg-[#902729] px-2 py-1 text-xs text-white"
-                        onClick={() => {
-                            handleOpenDreamPass(r);
-                        }}
-                    >
-                        Create DreamPass
-                    </button>
+                    {r.dream_pass_id ? (
+                        <button
+                            className="flex items-center gap-1.5 rounded-md bg-[#93723c] px-2 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            onClick={() => handleViewDreamPass(r.dream_pass_id!)}
+                            disabled={isDreamPassDetailsFetching}
+                        >
+                            {isDreamPassDetailsFetching ? (
+                                <>
+                                    <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, duration: 0.75, ease: 'linear' }}
+                                        style={{
+                                            width: 10,
+                                            height: 10,
+                                            borderRadius: '50%',
+                                            border: '2px solid rgba(255,255,255,0.35)',
+                                            borderTopColor: 'white',
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                    <span>Loading…</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Eye size={11} />
+                                    <span>View DreamPass</span>
+                                </>
+                            )}
+                        </button>
+                    ) : (
+                        <button
+                            className="flex items-center gap-1 rounded-md bg-[#902729] px-2 py-1 text-xs text-white"
+                            onClick={() => handleOpenDreamPass(r)}
+                        >
+                            Create DreamPass
+                        </button>
+                    )}
                 </div>
             </td>
             <td className="td-cell">
@@ -1549,15 +1614,12 @@ function GuestDetailPanel({
                                 color: 'white',
                                 fontFamily: "'DM Sans', sans-serif",
                             }}
-                        >
-                            {vip ? <Star size={22} color="gold" /> : getInitials(name)}
-                        </div>
+                        ></div>
                         <div>
                             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: 'white', lineHeight: 1.1 }}>
                                 {name}
                             </h2>
                             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 3 }}>#{guest.reservation_number}</p>
-                            {vip && <span style={{ fontSize: 10, fontWeight: 700, color: '#ffd700', letterSpacing: '0.1em' }}>★ VIP GUEST</span>}
                         </div>
                     </div>
                     <button

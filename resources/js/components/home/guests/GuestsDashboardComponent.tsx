@@ -2,20 +2,7 @@ import { GuestChart } from '@/components/home/guests/GuestChart';
 import { MetricCard } from '@/components/home/guests/MetricCard';
 import { RecentActivity } from '@/components/home/guests/RecentActivity';
 import axios from 'axios';
-import {
-    AlertTriangle,
-    ArrowUpRight,
-    CalendarClock,
-    ChevronDown,
-    Clock3,
-    Download,
-    RefreshCw,
-    Shield,
-    UserCheck,
-    UserMinus,
-    UserPlus,
-    Users,
-} from 'lucide-react';
+import { AlertTriangle, CalendarClock, ChevronDown, Clock3, Download, RefreshCw, Shield, UserCheck, UserMinus, UserPlus, Users } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Period = 'today' | 'yesterday' | 'thisWeek' | 'last7Days' | 'last30Days' | 'thisMonth' | 'custom';
@@ -309,9 +296,6 @@ export default function GuestsDashboard() {
                             {data.overdue} guest{data.overdue !== 1 ? 's have' : ' has'} exceeded their scheduled departure time.
                         </p>
                     </div>
-                    <button className="flex shrink-0 items-center gap-1.5 text-sm font-semibold whitespace-nowrap text-amber-600 hover:underline">
-                        Review <ArrowUpRight className="h-3.5 w-3.5" />
-                    </button>
                 </div>
             )}
 

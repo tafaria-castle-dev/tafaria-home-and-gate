@@ -431,6 +431,7 @@ const CreateGuestReservation: React.FC<CreateGuestReservationProps> = ({ reserva
             phone_number: initialData.phone_number || '',
             adults_count: initialData.adults_count || '',
             kids_count: initialData.kids_count || '',
+            section: initialData.section || '',
             type: initialData.type || 'corporate',
             selectedContact: initialData.selectedContact || null,
             selectedContactPerson: initialData.selectedContactPerson || null,
