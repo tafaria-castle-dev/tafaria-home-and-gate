@@ -26,7 +26,7 @@ class UserController extends Controller
             'phone_number' => 'required|unique:users,phone_number',
             'signature' => 'string|nullable',
             'password' => 'required|string|min:8',
-            'role' => 'string|in:client,staff,admin,super_staff'
+            'role' => 'string|in:client,staff,admin,guard,super_staff'
         ]);
 
         $user = User::create([
@@ -63,7 +63,7 @@ class UserController extends Controller
             'pass_code' => 'string|min:4|max:6|nullable',
             'email_password' => 'string|min:8|nullable',
             'deleted' => 'boolean',
-            'role' => 'string|in:client,staff,admin,super_staff|nullable'
+            'role' => 'string|in:client,staff,admin,guard,super_staff|nullable'
         ]);
         if (isset($validated['email_password'])) {
             $validated['email_password'] = encrypt($validated['email_password']);

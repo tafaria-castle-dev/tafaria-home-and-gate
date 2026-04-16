@@ -346,6 +346,7 @@ export default function UserManagement() {
                                                 <option value="client">Client</option>
                                                 <option value="staff">Staff</option>
                                                 <option value="super_staff">Super Staff</option>
+                                                <option value="guard">Guard</option>
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </td>
@@ -470,6 +471,7 @@ export default function UserManagement() {
                                                 <option value="client">Client</option>
                                                 <option value="staff">Staff</option>
                                                 <option value="super_staff">Super Staff</option>
+                                                <option value="guard">Guard</option>
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </div>

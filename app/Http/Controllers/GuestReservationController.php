@@ -62,7 +62,10 @@ class GuestReservationController extends Controller
         $adultsActive = (int) (clone $liveQuery)->sum('adults_count');
         $kidsActive = (int) (clone $liveQuery)->sum('kids_count');
         $infantsActive = (int) (clone $liveQuery)->sum('infants_count');
-        $overdue = (clone $liveQuery)->whereNotNull('check_out')->where('check_out', '<', $now)->count();
+        $overdue = (clone $liveQuery)
+            ->whereNotNull('check_out')
+            ->where('check_out', '<', $now->copy()->endOfDay()->subDay())
+            ->count();
 
         $entryBase = GuestReservation::query();
         $this->applyDateRangeFilter($entryBase, $request, 'entry_time');

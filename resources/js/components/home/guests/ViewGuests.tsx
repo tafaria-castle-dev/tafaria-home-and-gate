@@ -110,7 +110,13 @@ const getInitials = (name: string) =>
         .slice(0, 2)
         .toUpperCase();
 
-const isOverdue = (r: GuestReservation) => !r.exit_time && r.check_out && new Date(r.check_out).getTime() < Date.now();
+const isOverdue = (r: GuestReservation) => {
+    if (r.exit_time || !r.check_out) return false;
+
+    const checkOut = new Date(r.check_out);
+    checkOut.setHours(23, 59, 59, 999);
+    return checkOut.getTime() < Date.now();
+};
 const isCheckedIn = (r: GuestReservation) => !!r.entry_time && !r.exit_time;
 const isVIP = (r: GuestReservation) => !!r.dream_pass_code || r.is_express_check_in;
 

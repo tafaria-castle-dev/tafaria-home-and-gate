@@ -51,10 +51,12 @@ export function RecentActivity() {
             const now = Date.now();
             const events: { r: any; time: Date; type: 'check-in' | 'check-out' | 'overdue' }[] = [];
 
+            const todayStr = new Date().toISOString().slice(0, 10); // "2026-04-14"
+
             for (const r of all) {
                 if (r.entry_time) events.push({ r, time: new Date(r.entry_time), type: 'check-in' });
                 if (r.exit_time) events.push({ r, time: new Date(r.exit_time), type: 'check-out' });
-                if (r.entry_time && !r.exit_time && r.check_out && new Date(r.check_out).getTime() < now)
+                if (r.entry_time && !r.exit_time && r.check_out && r.check_out < todayStr)
                     events.push({ r, time: new Date(r.check_out), type: 'overdue' });
             }
 
