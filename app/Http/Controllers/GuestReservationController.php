@@ -226,6 +226,9 @@ class GuestReservationController extends Controller
             'cleared_by_house_keeping.comments' => 'nullable|string',
             'cleared_by_house_keeping_user_id' => 'nullable|exists:users,id',
         ]);
+        if ($data['entry_time']) {
+            $data['entry_time'] = now();
+        }
 
         $guestReservation = GuestReservation::create($data);
         $guestReservation->load($this->relations);

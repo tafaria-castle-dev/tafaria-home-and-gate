@@ -9,6 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import OpportunityDetails from './OpportunityDetails';
 import OpportunitySkeletonLoader from './OpportunitySkeletonLoader';
+import { downloadExcel } from './ViewOpportunities';
+
 const formatTimestampToDate = (date: Date | string, dateOnly?: boolean) => {
     try {
         const d = typeof date === 'string' ? new Date(date) : date;
@@ -112,6 +114,29 @@ const ViewDashboardOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit,
         minAmount?: string;
         maxAmount?: string;
     }>(initialFilters);
+
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === sortedOpportunities.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(sortedOpportunities.map((o) => o.id)));
+        }
+    };
+    const downloadSelected = () => {
+        const toExport = sortedOpportunities.filter((o) => selectedIds.has(o.id));
+        downloadExcel(toExport);
+    };
+
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -583,6 +608,22 @@ const ViewDashboardOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit,
                     Filters
                     {isFilterOpen ? <ChevronUp className="ml-2 h-5 w-5" /> : <ChevronDown className="ml-2 h-5 w-5" />}
                 </button>
+                {selectedIds.size > 0 && (
+                    <button
+                        onClick={downloadSelected}
+                        className="flex items-center rounded-md bg-green-600 px-4 py-2 text-white transition hover:bg-green-700"
+                    >
+                        <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                            />
+                        </svg>
+                        Download ({selectedIds.size})
+                    </button>
+                )}
                 {userNames.length > 1 && (
                     <div className="flex">
                         <label className="mx-2 block text-sm font-medium text-gray-700">Edited By</label>
@@ -944,8 +985,13 @@ const ViewDashboardOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit,
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100">
-                                            <h3>Select</h3>
+                                        <th className="px-3 py-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.size === sortedOpportunities.length && sortedOpportunities.length > 0}
+                                                onChange={toggleSelectAll}
+                                                className="rounded border-gray-300"
+                                            />
                                         </th>
                                         <th
                                             className="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
@@ -1084,8 +1130,13 @@ const ViewDashboardOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit,
                                                     className="hover:bg-gray-50"
                                                     ref={index === sortedOpportunities.length - 1 ? lastOpportunityElementRef : null}
                                                 >
-                                                    <td className="px-4 py-4 text-sm whitespace-nowrap text-gray-500">
-                                                        <input type="checkbox" className="form-checkbox h-5 w-5 text-blue-600" />
+                                                    <td className="px-3 py-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedIds.has(opportunity.id)}
+                                                            onChange={() => toggleSelect(opportunity.id)}
+                                                            className="rounded border-gray-300"
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-4 text-sm font-medium whitespace-normal text-gray-900">
                                                         {opportunity.name}

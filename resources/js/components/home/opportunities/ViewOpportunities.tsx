@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Eye, Filter, Search, Trash, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { highlightMatch, OpportunityType } from './CreateOpportunity';
 import OpportunityDetails from './OpportunityDetails';
 import OpportunitySkeletonLoader from './OpportunitySkeletonLoader';
@@ -52,19 +52,231 @@ const itemVariants = {
     visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
     exit: { opacity: 0, y: -20, transition: { duration: 0.2 } },
 };
+const formatStageText = (stage: string) => {
+    return stage.replace(/([A-Z])/g, ' $1').trim();
+};
+
+export const downloadExcel = (opportunities) => {
+    const workbook = XLSX.utils.book_new();
+    const now = new Date();
+    const nairobiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' }));
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const dateStr = `${nairobiTime.getDate()}-${pad(nairobiTime.getMonth() + 1)}-${nairobiTime.getFullYear()}`;
+    const timeStr = `${pad(nairobiTime.getHours())}${pad(nairobiTime.getMinutes())}`;
+    const displayDateTime = `${dateStr} ${pad(nairobiTime.getHours())}:${pad(nairobiTime.getMinutes())} EAT`;
+    const headerStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 },
+        fill: { fgColor: { rgb: 'FFA500' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: {
+            top: { style: 'medium', color: { rgb: '000000' } },
+            bottom: { style: 'medium', color: { rgb: '000000' } },
+            left: { style: 'medium', color: { rgb: '000000' } },
+            right: { style: 'medium', color: { rgb: '000000' } },
+        },
+    };
+
+    const cellStyle = {
+        alignment: { vertical: 'center', wrapText: false },
+        border: {
+            top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            right: { style: 'thin', color: { rgb: 'D1D5DB' } },
+        },
+        fill: { fgColor: { rgb: 'FFFFFF' } },
+    };
+
+    const altRowStyle = {
+        ...cellStyle,
+        fill: { fgColor: { rgb: 'FFF8EC' } }, // light amber tint for alternating rows
+    };
+
+    const totalRowStyle = {
+        font: { bold: true, sz: 13 },
+        fill: { fgColor: { rgb: 'FFD966' } },
+        alignment: { horizontal: 'right', vertical: 'center' },
+        border: {
+            top: { style: 'medium', color: { rgb: '000000' } },
+            bottom: { style: 'medium', color: { rgb: '000000' } },
+            left: { style: 'medium', color: { rgb: '000000' } },
+            right: { style: 'medium', color: { rgb: '000000' } },
+        },
+    };
+
+    const titleStyle = {
+        font: { bold: true, sz: 16, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '2C3E50' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+    };
+
+    const metaStyle = {
+        font: { italic: true, sz: 10, color: { rgb: '666666' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'F9F9F9' } },
+    };
+
+    const headers = [
+        'OPPORTUNITY TYPE',
+        'INSTITUTION / CONTACT',
+        'CONTACT PERSON',
+        'PHONE',
+        'EMAIL',
+        'STAGE',
+        'PROBABILITY (%)',
+        'AMOUNT (KSH)',
+        'LAST ACTIVITY',
+        'ACTIVITY BY',
+        'CREATED AT',
+        'CLOSE DATE',
+        'OPPORTUNITY CLERK',
+    ];
+
+    const TOTAL_COLS = headers.length; // 13
+
+    const exportData = opportunities.map((opp) => {
+        const isInstitution = !!opp.contact?.institution;
+
+        const nameOrInstitution = isInstitution ? opp.contact.institution : '-';
+
+        const contactPerson = `${opp.contact_person?.first_name ?? ''} ${opp.contact_person?.last_name ?? ''}`.trim();
+
+        const phone = opp.contact_person?.phone ?? opp.contact?.phone ?? '';
+        const email = opp.contact_person?.email ?? opp.contact?.email ?? '';
+
+        const lastActivity = opp.last_update?.updated_at ? formatTimestampToDate(opp.last_update.updated_at) : '';
+
+        const lastActivityBy =
+            opp.last_update?.updated_by?.role === 'super_staff' ? opp.last_update?.super_staff || 'Laura' : (opp.last_update?.updated_by?.name ?? '');
+
+        const clerk =
+            opp.assistant_clerk?.role === 'super_staff' ? opp.assistant_clerk?.prepared_by_clerk || 'Laura' : (opp.assistant_clerk?.name ?? '');
+
+        return [
+            opp.name ?? '',
+            nameOrInstitution,
+            contactPerson,
+            phone,
+            email,
+            formatStageText(opp.stage ?? ''),
+            opp.probability ?? 0,
+            opp.amount ?? 0,
+            lastActivity,
+            lastActivityBy,
+            formatTimestampToDate(opp.created_at, true),
+            formatTimestampToDate(opp.close_date, true),
+            clerk,
+        ];
+    });
+
+    const totalAmount = opportunities.reduce((sum, opp) => sum + (opp.amount ?? 0), 0);
+
+    const sheetData = [
+        [`Opportunities Export — ${displayDateTime}`, ...Array(TOTAL_COLS - 1).fill('')],
+        [`Total Records: ${opportunities.length}`, ...Array(TOTAL_COLS - 1).fill('')], // row 1: meta
+        Array(TOTAL_COLS).fill(''),
+        headers,
+        ...exportData,
+        ['', '', '', '', '', '', 'TOTAL AMOUNT (KSH)', totalAmount, '', '', '', '', ''],
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+    worksheet['!cols'] = [
+        { wpx: 180 }, // Opportunity Type
+        { wpx: 180 }, // Institution/Contact
+        { wpx: 150 }, // Contact Person
+        { wpx: 110 }, // Phone
+        { wpx: 180 }, // Email
+        { wpx: 120 }, // Stage
+        { wpx: 110 }, // Probability
+        { wpx: 130 }, // Amount
+        { wpx: 150 }, // Last Activity
+        { wpx: 130 }, // Activity By
+        { wpx: 100 }, // Created At
+        { wpx: 100 }, // Close Date
+        { wpx: 150 }, // Clerk
+    ];
+
+    worksheet['!rows'] = Array(sheetData.length).fill({ hpt: 28 });
+    worksheet['!rows'][0] = { hpt: 36 }; // title taller
+
+    worksheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: TOTAL_COLS - 1 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: TOTAL_COLS - 1 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: TOTAL_COLS - 1 } },
+    ];
+
+    const totalRows = sheetData.length;
+    const headerRowIndex = 3;
+    const dataStartRow = 4;
+    const lastRowIndex = totalRows - 1;
+
+    for (let r = 0; r < totalRows; r++) {
+        for (let c = 0; c < TOTAL_COLS; c++) {
+            const cellRef = XLSX.utils.encode_cell({ r, c });
+            if (!worksheet[cellRef]) {
+                worksheet[cellRef] = { v: '', t: 's' };
+            }
+
+            if (r === 0) {
+                worksheet[cellRef].s = titleStyle;
+            } else if (r === 1) {
+                worksheet[cellRef].s = metaStyle;
+            } else if (r === 2) {
+                worksheet[cellRef].s = { fill: { fgColor: { rgb: 'F9F9F9' } } };
+            } else if (r === headerRowIndex) {
+                worksheet[cellRef].s = headerStyle;
+            } else if (r === lastRowIndex) {
+                // Total row
+                worksheet[cellRef].s = totalRowStyle;
+                if (c === 6) {
+                    worksheet[cellRef].s = {
+                        ...totalRowStyle,
+                        alignment: { horizontal: 'right', vertical: 'center' },
+                    };
+                }
+            } else {
+                const isEven = (r - dataStartRow) % 2 === 0;
+                worksheet[cellRef].s = isEven ? cellStyle : altRowStyle;
+
+                if (c === 6 || c === 7) {
+                    worksheet[cellRef].s = {
+                        ...(isEven ? cellStyle : altRowStyle),
+                        alignment: { horizontal: 'right', vertical: 'center' },
+                    };
+                }
+            }
+        }
+    }
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Opportunities');
+
+    const fileName = `WoF_Opportunities_${dateStr}_${timeStr}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+};
 const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiveTab, activeTab }) => {
-    const downloadExcel = (opportunities) => {
-        const data = opportunities.map((opp) => ({
-            'Opportunity Type': opp.name,
-            'Name/Institution': opp.contact.institution || `${opp.contact_person?.first_name} ${opp.contact_person?.last_name}`,
-            Stage: opp.stage,
-            Probability: `${opp.probability}%`,
-        }));
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Opportunities');
-        const fileName = `opportunities_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        XLSX.writeFile(workbook, fileName);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === sortedOpportunities.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(sortedOpportunities.map((o) => o.id)));
+        }
+    };
+    const downloadSelected = () => {
+        const toExport = sortedOpportunities.filter((o) => selectedIds.has(o.id));
+        downloadExcel(toExport);
     };
     const { isAuthenticated, user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
@@ -134,6 +346,7 @@ const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiv
             setPage(0);
             setOpportunities([]);
             setTotalCount(0);
+            // setSelectedIds(new Set());
         }, 500);
         return () => clearTimeout(timer);
     }, [searchQuery]);
@@ -442,6 +655,7 @@ const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiv
         setOpportunities([]);
         setTotalCount(0);
         fetchOpportunities();
+        // setSelectedIds(new Set());
         toast.success('Filters cleared!');
     };
     const getProbabilityStyle = (probability: number) => {
@@ -451,9 +665,7 @@ const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiv
         if (probability > 0) return 'bg-orange-100 text-orange-700';
         return 'bg-red-100 text-red-700';
     };
-    const formatStageText = (stage: string) => {
-        return stage.replace(/([A-Z])/g, ' $1').trim();
-    };
+
     const updateLastUpdate = async (opportunity: Opportunity) => {
         await axios.post(`/api/last-updates`, {
             updated_at: new Date().toISOString(),
@@ -666,20 +878,22 @@ const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiv
                     Filters
                     {isFilterOpen ? <ChevronUp className="ml-2 h-5 w-5" /> : <ChevronDown className="ml-2 h-5 w-5" />}
                 </button>
-                {/* <button
-                    onClick={() => downloadExcel(opportunities)}
-                    className="flex items-center rounded-md bg-green-600 px-4 py-2 text-white transition hover:bg-green-700"
-                >
-                    <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                        />
-                    </svg>
-                    Download Excel
-                </button> */}
+                {selectedIds.size > 0 && (
+                    <button
+                        onClick={downloadSelected}
+                        className="flex items-center rounded-md bg-green-600 px-4 py-2 text-white transition hover:bg-green-700"
+                    >
+                        <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                            />
+                        </svg>
+                        Download ({selectedIds.size})
+                    </button>
+                )}
                 {userNames.length > 1 && (
                     <div className="flex">
                         <label className="mx-2 block text-sm font-medium text-gray-700">Edited By</label>
@@ -1053,8 +1267,13 @@ const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiv
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100">
-                                            <h3>Select</h3>
+                                        <th className="px-3 py-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.size === sortedOpportunities.length && sortedOpportunities.length > 0}
+                                                onChange={toggleSelectAll}
+                                                className="rounded border-gray-300"
+                                            />
                                         </th>
                                         <th
                                             className="cursor-pointer px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase hover:bg-gray-100"
@@ -1175,8 +1394,13 @@ const ViewOpportunities: React.FC<ViewOpportunitiesProps> = ({ setEdit, setActiv
                                                 className="hover:bg-gray-50"
                                                 ref={index === sortedOpportunities.length - 1 ? lastOpportunityElementRef : null}
                                             >
-                                                <td className="px-4 py-4 text-sm whitespace-nowrap text-gray-500">
-                                                    <input type="checkbox" className="form-checkbox h-5 w-5 text-blue-600" />
+                                                <td className="px-3 py-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.has(opportunity.id)}
+                                                        onChange={() => toggleSelect(opportunity.id)}
+                                                        className="rounded border-gray-300"
+                                                    />
                                                 </td>
                                                 <td className="px-4 py-4 text-sm font-medium whitespace-normal text-gray-900">
                                                     {opportunity.name}
