@@ -208,7 +208,7 @@ const CreateDreamPass: React.FC<{
                     validTo: day,
                 },
             }));
-        } else {
+        } else if (!isDayVisit && !prefillData) {
             if (activeTab !== 'edit') {
                 setPassCode('');
             }
