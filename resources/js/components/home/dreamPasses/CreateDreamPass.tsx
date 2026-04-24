@@ -492,12 +492,12 @@ const CreateDreamPass: React.FC<{
             } else {
                 toast.error('All bulk creations failed');
             }
-            await axios.post('/api/admin/create-dream-pass', {
-                refNo: `${101}-${178}`,
-                roomNumber: 'day-visit-bulk',
-                activityCount: formData.activities.length.toString(),
-                checkInDate: formData.checkIn,
-            });
+            // await axios.post('/api/admin/create-dream-pass', {
+            //     refNo: `${101}-${178}`,
+            //     roomNumber: 'day-visit-bulk',
+            //     activityCount: formData.activities.length.toString(),
+            //     checkInDate: formData.checkIn,
+            // });
             setFormData({
                 roomNumber: '',
                 name: '',
@@ -565,12 +565,12 @@ const CreateDreamPass: React.FC<{
                 toast.success('DreamPass created successfully');
                 onSuccess && onSuccess();
             }
-            await axios.post('/api/admin/create-dream-pass', {
-                refNo: `${effectiveRoomNumber}-${passId}`,
-                roomNumber: effectiveRoomNumber,
-                activityCount: formData.activities.length.toString(),
-                checkInDate: formData.checkIn || '',
-            });
+            // await axios.post('/api/admin/create-dream-pass', {
+            //     refNo: `${effectiveRoomNumber}-${passId}`,
+            //     roomNumber: effectiveRoomNumber,
+            //     activityCount: formData.activities.length.toString(),
+            //     checkInDate: formData.checkIn || '',
+            // });
             localStorage.removeItem('id');
             setActiveTab('view');
             setFormData({
@@ -638,12 +638,12 @@ const CreateDreamPass: React.FC<{
                 }
             }
 
-            await axios.post('/api/admin/create-dream-pass', {
-                refNo: `${101}-${178}`,
-                roomNumber: '101 - 178',
-                activityCount: bulkData.activities.length.toString(),
-                checkInDate: bulkData.checkIn,
-            });
+            // await axios.post('/api/admin/create-dream-pass', {
+            //     refNo: `${101}-${178}`,
+            //     roomNumber: '101 - 178',
+            //     activityCount: bulkData.activities.length.toString(),
+            //     checkInDate: bulkData.checkIn,
+            // });
             toast.success(`Bulk creation complete: ${successCount} passes created, ${failCount} failed`);
             setShowBulkModal(false);
             setBulkData({
