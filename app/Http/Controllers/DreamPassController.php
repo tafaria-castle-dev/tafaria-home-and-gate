@@ -124,32 +124,82 @@ class DreamPassController extends Controller
         ]);
 
         return DB::transaction(function () use ($request, $dreamPass) {
+
             $dreamPass->update([
+                'guest_name' => $request->guest_name ?? $dreamPass->guest_name,
                 'check_in_date' => $request->check_in_date,
                 'check_out_date' => $request->check_out_date,
             ]);
-            $existingActivityIds = $dreamPass->activities->pluck('id')->toArray();
-            $incomingActivityIds = collect($request->activities)->pluck('id')->filter()->toArray();
 
+            $existingActivityIds = $dreamPass->activities->pluck('id')->toArray();
+            $incomingActivityIds = collect($request->activities)->pluck('id')->filter()->values()->toArray();
             $toDelete = array_diff($existingActivityIds, $incomingActivityIds);
-            DreamPassActivity::whereIn('id', $toDelete)->delete();
+
+            if (!empty($toDelete)) {
+                $safeToDeleteIds = DreamPassActivity::whereIn('id', $toDelete)
+                    ->withCount('redemptions')
+                    ->get()
+                    ->where('redemptions_count', 0)
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($safeToDeleteIds)) {
+                    DreamPassActivity::whereIn('id', $safeToDeleteIds)->delete();
+                }
+            }
 
             foreach ($request->activities as $act) {
-                if (isset($act['id'])) {
-                    DreamPassActivity::where('id', $act['id'])->update([
+                if (!empty($act['id'])) {
+                    $existing = DreamPassActivity::where('id', $act['id'])
+                        ->where('dream_pass_id', $dreamPass->id)
+                        ->withCount('redemptions')
+                        ->first();
+
+                    if (!$existing) {
+                        continue;
+                    }
+
+                    if ($act['voucher_count'] < $existing->redemptions_count) {
+                        return response()->json([
+                            'message' => "Cannot set voucher count for \"{$existing->activity_name}\" to {$act['voucher_count']}. "
+                                . "{$existing->redemptions_count} voucher(s) have already been redeemed.",
+                        ], 422);
+                    }
+
+                    $existing->update([
                         'activity_name' => $act['activity_name'],
                         'voucher_count' => $act['voucher_count'],
                         'valid_from' => $act['valid_from'],
                         'valid_to' => $act['valid_to'],
                     ]);
                 } else {
-                    DreamPassActivity::create([
-                        'dream_pass_id' => $dreamPass->id,
-                        'activity_name' => $act['activity_name'],
-                        'voucher_count' => $act['voucher_count'],
-                        'valid_from' => $act['valid_from'],
-                        'valid_to' => $act['valid_to'],
-                    ]);
+                    $existingByName = DreamPassActivity::where('dream_pass_id', $dreamPass->id)
+                        ->where('activity_name', $act['activity_name'])
+                        ->withCount('redemptions')
+                        ->first();
+
+                    if ($existingByName) {
+                        if ($act['voucher_count'] < $existingByName->redemptions_count) {
+                            return response()->json([
+                                'message' => "Cannot set voucher count for \"{$existingByName->activity_name}\" to {$act['voucher_count']}. "
+                                    . "{$existingByName->redemptions_count} voucher(s) have already been redeemed.",
+                            ], 422);
+                        }
+
+                        $existingByName->update([
+                            'voucher_count' => $act['voucher_count'],
+                            'valid_from' => $act['valid_from'],
+                            'valid_to' => $act['valid_to'],
+                        ]);
+                    } else {
+                        DreamPassActivity::create([
+                            'dream_pass_id' => $dreamPass->id,
+                            'activity_name' => $act['activity_name'],
+                            'voucher_count' => $act['voucher_count'],
+                            'valid_from' => $act['valid_from'],
+                            'valid_to' => $act['valid_to'],
+                        ]);
+                    }
                 }
             }
 
@@ -167,7 +217,7 @@ class DreamPassController extends Controller
                 $dreamPass->souvenirDiscount->delete();
             }
 
-            $dreamPass->load(['activities', 'souvenirDiscount']);
+            $dreamPass->load(['activities.redemptions', 'souvenirDiscount']);
 
             return response()->json($dreamPass);
         });

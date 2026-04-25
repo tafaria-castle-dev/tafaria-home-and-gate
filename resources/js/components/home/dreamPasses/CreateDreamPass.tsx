@@ -150,13 +150,33 @@ const CreateDreamPass: React.FC<{
             const storedDayVisit = localStorage.getItem('dayVisit') == 'true';
             if (saved) {
                 const parsed = JSON.parse(saved);
-                setFormData(parsed);
+
+                const normalized = {
+                    ...parsed,
+                    activities: (parsed.activities || []).map((act: any) => ({
+                        id: act.id,
+                        name: act.name ?? act.activity_name ?? '',
+                        voucher_count: act.voucher_count ?? 1,
+                        validFrom: act.validFrom ?? toDateOnly(act.valid_from) ?? '',
+                        validTo: act.validTo ?? toDateOnly(act.valid_to) ?? '',
+                    })),
+                    souvenir: parsed.souvenir ?? {
+                        discount: parsed.souvenir_discount?.discount_percentage?.toString() ?? '',
+                        validFrom: toDateOnly(parsed.souvenir_discount?.valid_from) ?? '',
+                        validTo: toDateOnly(parsed.souvenir_discount?.valid_to) ?? '',
+                        items: defaultSouvenirItems.map((name) => ({
+                            name,
+                            checked: parsed.souvenir_discount?.applicable_items?.includes(name) ?? false,
+                        })),
+                    },
+                };
+
+                setFormData(normalized);
                 const isActuallyDayVisit = storedDayVisit || parsed.day_visit || false;
                 setIsDayVisit(isActuallyDayVisit);
 
                 if (isActuallyDayVisit) {
-                    const existingPassCode = parsed.roomNumber || '';
-                    setPassCode(existingPassCode);
+                    setPassCode(parsed.roomNumber || parsed.room_number || '');
                 } else {
                     setPassCode('');
                 }
@@ -537,6 +557,7 @@ const CreateDreamPass: React.FC<{
                 check_in_date: formData.checkIn,
                 check_out_date: formData.checkOut,
                 activities: formData.activities.map((act) => ({
+                    ...(activeTab === 'edit' && act.id ? { id: act.id } : {}),
                     activity_name: act.name,
                     valid_from: act.validFrom,
                     voucher_count: act.voucher_count,
