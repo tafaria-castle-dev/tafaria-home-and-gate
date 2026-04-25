@@ -32,25 +32,16 @@ class GuestReservationController extends Controller
                     ->limit(1),
             ])
             ->latest('guest_reservations.created_at');
-        $query = $this->applyFilters($query, $request);
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('guest_name', 'like', "%{$search}%")
-                    ->orWhere('reservation_number', 'like', "%{$search}%")
-                    ->orWhere('phone_number', 'like', "%{$search}%")
-                    ->orWhere('car_plate_number', 'like', "%{$search}%")
-                    ->orWhereHas('contact', fn($r) => $r->where('institution', 'like', "%{$search}%"))
-                    ->orWhereHas('contactPerson', fn($r) => $r->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%"));
-            });
-        }
+        $query = $this->applyFilters($query, $request);
+        $query = $this->applySearch($query, $request);
 
         $perPage = min((int) $request->get('per_page', 25), 100);
 
-        return GuestReservationResource::collection($query->paginate($perPage));
+        $paginated = $query->paginate($perPage);
+
+        return GuestReservationResource::collection($paginated)
+            ->additional(['meta' => ['total_unfiltered' => $paginated->total()]]);
     }
 
     public function aggregations(Request $request)
@@ -68,12 +59,17 @@ class GuestReservationController extends Controller
             ->count();
 
         $entryBase = GuestReservation::query();
+        $this->applyFilters($entryBase, $request);
+        $this->applySearch($entryBase, $request);
         $this->applyDateRangeFilter($entryBase, $request, 'entry_time');
 
         $exitBase = GuestReservation::query();
+        $this->applyFilters($exitBase, $request);
+        $this->applySearch($exitBase, $request);
         $this->applyDateRangeFilter($exitBase, $request, 'exit_time');
 
-        $checkInsInPeriod = (clone $entryBase)->count();
+        $total = (clone $entryBase)->count();
+        $checkInsInPeriod = $total;
         $checkOutsInPeriod = (clone $exitBase)->count();
         $corporate = (clone $entryBase)->where('type', 'corporate')->count();
         $leisure = (clone $entryBase)->where('type', 'leisure')->count();
@@ -128,6 +124,7 @@ class GuestReservationController extends Controller
             ->get();
 
         return response()->json([
+            'total' => $total,
             'active' => $active,
             'adults_active' => $adultsActive,
             'kids_active' => $kidsActive,
@@ -226,6 +223,7 @@ class GuestReservationController extends Controller
             'cleared_by_house_keeping.comments' => 'nullable|string',
             'cleared_by_house_keeping_user_id' => 'nullable|exists:users,id',
         ]);
+
         if ($data['entry_time']) {
             $data['entry_time'] = now();
         }
@@ -320,6 +318,25 @@ class GuestReservationController extends Controller
         return response()->json(['message' => 'GuestReservation deleted successfully']);
     }
 
+    protected function applySearch($query, Request $request)
+    {
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('guest_name', 'like', "%{$search}%")
+                    ->orWhere('reservation_number', 'like', "%{$search}%")
+                    ->orWhere('phone_number', 'like', "%{$search}%")
+                    ->orWhere('car_plate_number', 'like', "%{$search}%")
+                    ->orWhereHas('contact', fn($r) => $r->where('institution', 'like', "%{$search}%"))
+                    ->orWhereHas('contactPerson', fn($r) => $r->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%"));
+            });
+        }
+
+        return $query;
+    }
+
     protected function applyDateRangeFilter($query, Request $request, string $field)
     {
         if (!$request->filled('dateRange')) {
@@ -349,6 +366,12 @@ class GuestReservationController extends Controller
                 break;
             case 'last3Months':
                 $query->where($field, '>=', Carbon::now()->subMonths(3)->startOfDay());
+                break;
+            case 'last6Months':
+                $query->where($field, '>=', Carbon::now()->subMonths(6)->startOfDay());
+                break;
+            case 'lastYear':
+                $query->where($field, '>=', Carbon::now()->subYear()->startOfDay());
                 break;
             case 'custom':
                 if ($request->filled('customStart') && $request->filled('customEnd')) {
