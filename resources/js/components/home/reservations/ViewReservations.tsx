@@ -733,11 +733,20 @@ const ViewGuestReservations: React.FC<ViewGuestReservationsProps> = ({ setActive
                                             <td className="px-4 py-3 text-sm text-slate-600">
                                                 <span className="flex items-center gap-1">
                                                     <Users className="h-3.5 w-3.5 text-slate-400" />
+                                                    Adults
                                                     {r.adults_count ?? 0}
                                                     {(r.kids_count ?? 0) > 0 && (
                                                         <span className="ml-1 flex items-center gap-0.5 text-slate-400">
                                                             <Baby className="h-3.5 w-3.5" />
+                                                            Kids
                                                             {r.kids_count}
+                                                        </span>
+                                                    )}
+                                                    {(r.infants_count ?? 0) > 0 && (
+                                                        <span className="ml-1 flex items-center gap-0.5 text-slate-400">
+                                                            <Baby className="h-3.5 w-3.5" />
+                                                            Infants
+                                                            {r.infants_count}
                                                         </span>
                                                     )}
                                                 </span>
@@ -922,6 +931,11 @@ const ViewGuestReservations: React.FC<ViewGuestReservationsProps> = ({ setActive
                                         value={selectedReservation.adults_count ?? '—'}
                                     />
                                     <InfoRow label="Kids" icon={<Baby className="h-3.5 w-3.5" />} value={selectedReservation.kids_count ?? '—'} />
+                                    <InfoRow
+                                        label="Infants"
+                                        icon={<Baby className="h-3.5 w-3.5" />}
+                                        value={selectedReservation.infants_count ?? '—'}
+                                    />
                                     <InfoRow label="Phone" icon={<Phone className="h-3.5 w-3.5" />} value={selectedReservation.phone_number} />
                                     <InfoRow label="Car Plate" icon={<Car className="h-3.5 w-3.5" />} value={selectedReservation.car_plate_number} />
                                     {selectedReservation.contact && (
