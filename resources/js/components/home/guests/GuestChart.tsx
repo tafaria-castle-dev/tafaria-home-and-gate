@@ -115,11 +115,16 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                 chartRef.current.destroy();
                 chartRef.current = null;
             }
-            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
-            const tickColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
-            const tooltipBg = isDark ? '#1c1b1a' : '#ffffff';
-            const tooltipBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+
+            const gridColor = 'rgba(0,0,0,0.04)';
+            const tickColor = 'rgba(0,0,0,0.28)';
+            const tooltipBg = '#ffffff';
+            const tooltipBorder = 'rgba(0,0,0,0.07)';
+
+            const primaryRed = '#902729';
+            const primaryRedAlpha = 'rgba(144,39,41,0.12)';
+            const goldBrown = '#93723c';
+            const goldBrownAlpha = 'rgba(147,114,60,0.12)';
 
             const commonScales = {
                 x: {
@@ -133,17 +138,21 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                     border: { display: false },
                 },
             };
+
             const commonTooltip = {
                 backgroundColor: tooltipBg,
                 borderColor: tooltipBorder,
                 borderWidth: 1,
-                titleColor: isDark ? '#e2e0d8' : '#1a1a18',
-                bodyColor: isDark ? '#9c9a92' : '#73726c',
+                titleColor: '#1c1208',
+                bodyColor: '#6b5c45',
                 padding: 12,
-                cornerRadius: 10,
+                cornerRadius: 12,
                 titleFont: { size: 12, weight: 'bold' as const, family: 'DM Sans, sans-serif' },
                 bodyFont: { size: 11, family: 'DM Sans, sans-serif' },
-                boxPadding: 4,
+                boxPadding: 5,
+                boxWidth: 10,
+                boxHeight: 10,
+                usePointStyle: true,
             };
 
             const ctx = canvasRef.current.getContext('2d');
@@ -160,39 +169,39 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                                 {
                                     label: 'Check-ins',
                                     data: hourlyData.map((d) => d.checkIns),
-                                    borderColor: 'hsl(359,58%,36%)',
+                                    borderColor: primaryRed,
                                     backgroundColor: (c: any) => {
                                         const g = c.chart.ctx.createLinearGradient(0, 0, 0, c.chart.height);
-                                        g.addColorStop(0, 'hsla(359,58%,36%,0.18)');
-                                        g.addColorStop(1, 'hsla(359,58%,36%,0)');
+                                        g.addColorStop(0, 'rgba(144,39,41,0.15)');
+                                        g.addColorStop(1, 'rgba(144,39,41,0)');
                                         return g;
                                     },
-                                    borderWidth: 2.5,
+                                    borderWidth: 2,
                                     fill: true,
                                     tension: 0.4,
                                     pointRadius: 3,
                                     pointHoverRadius: 5,
-                                    pointBackgroundColor: 'hsl(359,58%,36%)',
-                                    pointBorderColor: tooltipBg,
+                                    pointBackgroundColor: primaryRed,
+                                    pointBorderColor: '#ffffff',
                                     pointBorderWidth: 2,
                                 },
                                 {
                                     label: 'Check-outs',
                                     data: hourlyData.map((d) => d.checkOuts),
-                                    borderColor: 'hsl(35,43%,40%)',
+                                    borderColor: goldBrown,
                                     backgroundColor: (c: any) => {
                                         const g = c.chart.ctx.createLinearGradient(0, 0, 0, c.chart.height);
-                                        g.addColorStop(0, 'hsla(35,43%,40%,0.15)');
-                                        g.addColorStop(1, 'hsla(35,43%,40%,0)');
+                                        g.addColorStop(0, 'rgba(147,114,60,0.12)');
+                                        g.addColorStop(1, 'rgba(147,114,60,0)');
                                         return g;
                                     },
-                                    borderWidth: 2.5,
+                                    borderWidth: 2,
                                     fill: true,
                                     tension: 0.4,
                                     pointRadius: 3,
                                     pointHoverRadius: 5,
-                                    pointBackgroundColor: 'hsl(35,43%,40%)',
-                                    pointBorderColor: tooltipBg,
+                                    pointBackgroundColor: goldBrown,
+                                    pointBorderColor: '#ffffff',
                                     pointBorderWidth: 2,
                                 },
                             ],
@@ -214,8 +223,8 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                                 {
                                     label: 'Net flow',
                                     data: hourlyData.map((d) => d.net),
-                                    backgroundColor: hourlyData.map((d) => (d.net >= 0 ? 'hsla(359,58%,36%,0.75)' : 'hsla(35,43%,40%,0.75)')),
-                                    borderColor: hourlyData.map((d) => (d.net >= 0 ? 'hsl(359,58%,36%)' : 'hsl(35,43%,40%)')),
+                                    backgroundColor: hourlyData.map((d) => (d.net >= 0 ? 'rgba(144,39,41,0.75)' : 'rgba(147,114,60,0.75)')),
+                                    borderColor: hourlyData.map((d) => (d.net >= 0 ? primaryRed : goldBrown)),
                                     borderWidth: 1.5,
                                     borderRadius: 6,
                                     borderSkipped: false,
@@ -238,8 +247,8 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                                 {
                                     label: 'Check-ins',
                                     data: hourlyData.map((d) => d.checkIns),
-                                    backgroundColor: 'hsla(359,58%,36%,0.8)',
-                                    borderColor: 'hsl(359,58%,36%)',
+                                    backgroundColor: 'rgba(144,39,41,0.8)',
+                                    borderColor: primaryRed,
                                     borderWidth: 1.5,
                                     borderRadius: 6,
                                     borderSkipped: false,
@@ -247,8 +256,8 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                                 {
                                     label: 'Check-outs',
                                     data: hourlyData.map((d) => d.checkOuts),
-                                    backgroundColor: 'hsla(35,43%,40%,0.8)',
-                                    borderColor: 'hsl(35,43%,40%)',
+                                    backgroundColor: 'rgba(147,114,60,0.8)',
+                                    borderColor: goldBrown,
                                     borderWidth: 1.5,
                                     borderRadius: 6,
                                     borderSkipped: false,
@@ -274,8 +283,8 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                             {
                                 label: 'Arrivals',
                                 data: dailyData.map((d) => d.arrivals),
-                                backgroundColor: 'hsla(359,58%,36%,0.8)',
-                                borderColor: 'hsl(359,58%,36%)',
+                                backgroundColor: 'rgba(144,39,41,0.8)',
+                                borderColor: primaryRed,
                                 borderWidth: 1.5,
                                 borderRadius: 5,
                                 borderSkipped: false,
@@ -283,8 +292,8 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                             {
                                 label: 'Departures',
                                 data: dailyData.map((d) => d.departures),
-                                backgroundColor: 'hsla(35,43%,40%,0.8)',
-                                borderColor: 'hsl(35,43%,40%)',
+                                backgroundColor: 'rgba(147,114,60,0.8)',
+                                borderColor: goldBrown,
                                 borderWidth: 1.5,
                                 borderRadius: 5,
                                 borderSkipped: false,
@@ -319,16 +328,16 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
     const netTrend = totalIn - totalOut;
 
     return (
-        <div className="animate-fade-in h-full rounded-2xl border border-border bg-card p-5">
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="h-full rounded-2xl border border-stone-200/60 bg-white p-5 shadow-sm">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <h3 className="font-serif text-lg font-semibold text-foreground">Guest Flow</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <h3 className="font-serif text-lg font-semibold text-stone-800">Guest Flow</h3>
+                    <p className="mt-0.5 text-xs text-stone-400">
                         {isToday ? 'Hourly check-in & check-out activity' : 'Daily arrivals & departures'}
                     </p>
                 </div>
                 {isToday && (
-                    <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1">
+                    <div className="flex items-center gap-1 rounded-xl border border-stone-200 bg-stone-50 p-1">
                         {(
                             [
                                 { mode: 'flow', label: 'Flow' },
@@ -339,7 +348,9 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
                             <button
                                 key={t.mode}
                                 onClick={() => setMode(t.mode)}
-                                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${mode === t.mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                                    mode === t.mode ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-400 hover:text-stone-600'
+                                }`}
                             >
                                 {t.label}
                             </button>
@@ -350,54 +361,62 @@ export function GuestChart({ period, customStart, customEnd }: GuestChartProps) 
 
             <div className="mb-5 grid grid-cols-3 gap-3">
                 {[
-                    { label: isToday ? 'Total arrivals' : 'Total arrivals', value: totalIn, color: 'bg-primary' },
-                    { label: isToday ? 'Total departures' : 'Total departures', value: totalOut, color: 'bg-[hsl(35,43%,40%)]' },
+                    {
+                        label: isToday ? 'Arrivals' : 'Total arrivals',
+                        value: totalIn,
+                        dotColor: 'bg-rose-700',
+                    },
+                    {
+                        label: isToday ? 'Departures' : 'Total departures',
+                        value: totalOut,
+                        dotColor: 'bg-amber-700',
+                    },
                     {
                         label: isToday ? 'Peak hour' : 'Peak day',
                         value: peakLabel,
-                        color: 'bg-muted-foreground/40',
+                        dotColor: 'bg-stone-400',
                         extra:
                             netTrend !== 0 ? (
                                 <div
-                                    className={`mt-0.5 flex items-center gap-1 text-[10px] font-bold ${netTrend > 0 ? 'text-emerald-600' : 'text-rose-500'}`}
+                                    className={`mt-1 flex items-center gap-1 text-[10px] font-bold ${netTrend > 0 ? 'text-emerald-600' : 'text-rose-500'}`}
                                 >
-                                    {netTrend > 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                    {netTrend > 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
                                     {Math.abs(netTrend)} net
                                 </div>
                             ) : null,
                     },
                 ].map((s) => (
-                    <div key={s.label} className="rounded-xl border border-border/40 bg-muted/40 px-3 py-2.5">
-                        <div className="mb-1 flex items-center gap-1.5">
-                            <span className={`h-1.5 w-1.5 rounded-full ${s.color}`} />
-                            <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">{s.label}</span>
+                    <div key={s.label} className="rounded-xl border border-stone-100 bg-stone-50 px-3 py-3">
+                        <div className="mb-1.5 flex items-center gap-1.5">
+                            <span className={`h-1.5 w-1.5 rounded-full ${s.dotColor}`} />
+                            <span className="text-[9px] font-bold tracking-[0.1em] text-stone-400 uppercase">{s.label}</span>
                         </div>
-                        <p className="font-serif text-xl font-bold text-foreground">{s.value}</p>
+                        <p className="font-serif text-2xl font-bold text-stone-800">{s.value}</p>
                         {'extra' in s && s.extra}
                     </div>
                 ))}
             </div>
 
-            <div className="mb-3 flex items-center gap-5">
+            <div className="mb-4 flex items-center gap-5">
                 <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-4 rounded-sm bg-primary/70" />
-                    <span className="text-xs text-muted-foreground">{isToday ? 'Check-ins' : 'Arrivals'}</span>
+                    <span className="h-2.5 w-4 rounded-sm bg-rose-700/70" />
+                    <span className="text-xs text-stone-400">{isToday ? 'Check-ins' : 'Arrivals'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: 'hsla(35,43%,40%,0.7)' }} />
-                    <span className="text-xs text-muted-foreground">{isToday ? 'Check-outs' : 'Departures'}</span>
+                    <span className="h-2.5 w-4 rounded-sm bg-amber-700/70" />
+                    <span className="text-xs text-stone-400">{isToday ? 'Check-outs' : 'Departures'}</span>
                 </div>
-                {isToday && mode === 'net' && <span className="text-xs text-muted-foreground italic">Brown = net outflow</span>}
+                {isToday && mode === 'net' && <span className="text-xs text-stone-400 italic">Amber = net outflow</span>}
             </div>
 
             {isFetching ? (
                 <div className="flex h-[220px] items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-rose-100 border-t-rose-700" />
                 </div>
             ) : dailyData.length === 0 && !isToday ? (
-                <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-muted-foreground">
+                <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-stone-400">
                     <span className="text-3xl">📊</span>
-                    <span className="text-sm">No data for this period</span>
+                    <span className="text-sm font-medium">No data for this period</span>
                 </div>
             ) : (
                 <div style={{ position: 'relative', height: '220px' }}>

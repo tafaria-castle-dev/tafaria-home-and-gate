@@ -14,33 +14,30 @@ interface ActivityItem {
     reservation_number: string;
 }
 
-const iconMap = {
+const typeConfig = {
     'check-in': {
         Icon: LogIn,
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-500/10',
+        iconColor: 'text-emerald-600',
+        iconBg: 'bg-emerald-50',
         dot: 'bg-emerald-500',
-        border: 'border-emerald-500/20',
         label: 'Arrived',
-        labelBg: 'bg-emerald-500/10 text-emerald-700',
+        labelStyle: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
     },
     'check-out': {
         Icon: LogOut,
-        color: 'text-sky-600',
-        bg: 'bg-sky-500/10',
+        iconColor: 'text-sky-600',
+        iconBg: 'bg-sky-50',
         dot: 'bg-sky-500',
-        border: 'border-sky-500/20',
         label: 'Departed',
-        labelBg: 'bg-sky-500/10 text-sky-700',
+        labelStyle: 'bg-sky-50 text-sky-700 border border-sky-100',
     },
     overdue: {
         Icon: AlertTriangle,
-        color: 'text-amber-600',
-        bg: 'bg-amber-500/10',
+        iconColor: 'text-amber-600',
+        iconBg: 'bg-amber-50',
         dot: 'bg-amber-500',
-        border: 'border-amber-500/20',
         label: 'Overdue',
-        labelBg: 'bg-amber-500/10 text-amber-700',
+        labelStyle: 'bg-amber-50 text-amber-700 border border-amber-100',
     },
 };
 
@@ -142,16 +139,16 @@ export function RecentActivity() {
     ];
 
     return (
-        <div className="animate-fade-in overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="border-b border-border/60 px-5 pt-5 pb-4">
-                <div className="mb-3 flex items-center justify-between">
+        <div className="overflow-hidden rounded-2xl border border-stone-200/60 bg-white shadow-sm">
+            <div className="border-b border-stone-100 bg-stone-50/50 px-5 pt-5 pb-4">
+                <div className="mb-4 flex items-center justify-between">
                     <div>
-                        <h3 className="font-serif text-lg font-semibold text-foreground">Recent Activity</h3>
-                        <p className="mt-0.5 text-xs text-muted-foreground">Live guest events · last 30 records</p>
+                        <h3 className="font-serif text-lg font-semibold text-stone-800">Recent Activity</h3>
+                        <p className="mt-0.5 text-xs text-stone-400">Live guest events · last 30 records</p>
                     </div>
                     <button
                         onClick={fetchActivities}
-                        className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                        className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-500 shadow-sm transition-all hover:border-stone-300 hover:text-stone-700 hover:shadow-md active:scale-95"
                     >
                         <RefreshCw className={cn('h-3 w-3', isFetching && 'animate-spin')} />
                         Refresh
@@ -163,10 +160,10 @@ export function RecentActivity() {
                             key={t.f}
                             onClick={() => setFilter(t.f)}
                             className={cn(
-                                'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all',
+                                'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150',
                                 filter === t.f
-                                    ? 'bg-primary text-primary-foreground shadow-sm'
-                                    : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground',
+                                    ? 'bg-rose-700 text-white shadow-sm shadow-rose-200'
+                                    : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:text-stone-700',
                             )}
                         >
                             {t.label}
@@ -174,7 +171,7 @@ export function RecentActivity() {
                                 <span
                                     className={cn(
                                         'rounded-full px-1.5 py-0 text-[9px] leading-4 font-bold',
-                                        filter === t.f ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground',
+                                        filter === t.f ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500',
                                     )}
                                 >
                                     {t.count}
@@ -188,58 +185,63 @@ export function RecentActivity() {
             <div className="max-h-[420px] overflow-y-auto">
                 {isFetching ? (
                     <div className="flex min-h-40 items-center justify-center">
-                        <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary" />
+                        <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-rose-100 border-t-rose-700" />
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                        <Clock className="h-8 w-8 opacity-20" />
-                        <p className="text-sm">No activity to show</p>
+                    <div className="flex flex-col items-center justify-center gap-3 py-14 text-stone-400">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-50">
+                            <Clock className="h-5 w-5 opacity-40" />
+                        </div>
+                        <p className="text-sm font-medium">No activity to show</p>
                     </div>
                 ) : (
-                    <div className="space-y-4 px-4 py-3">
+                    <div className="space-y-5 px-5 py-4">
                         {Object.entries(grouped).map(([group, items]) => (
                             <div key={group}>
-                                <div className="mb-2 flex items-center gap-2">
-                                    <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{group}</span>
-                                    <div className="h-px flex-1 bg-border/60" />
+                                <div className="mb-2.5 flex items-center gap-2.5">
+                                    <span className="text-[10px] font-bold tracking-[0.1em] text-stone-400 uppercase">{group}</span>
+                                    <div className="h-px flex-1 bg-stone-100" />
                                 </div>
                                 <div className="space-y-0.5">
                                     {items.map((activity) => {
-                                        const { Icon, color, bg, dot, border, label, labelBg } = iconMap[activity.type];
+                                        const cfg = typeConfig[activity.type];
+                                        const { Icon } = cfg;
                                         return (
                                             <div
                                                 key={activity.id}
-                                                className="group flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 transition-all hover:bg-muted/50"
+                                                className="group flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 transition-all duration-150 hover:bg-stone-50"
                                             >
                                                 <div
                                                     className={cn(
-                                                        'relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border',
-                                                        bg,
-                                                        border,
+                                                        'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                                                        cfg.iconBg,
                                                     )}
                                                 >
-                                                    <Icon className={cn('h-3.5 w-3.5', color)} />
+                                                    <Icon className={cn('h-3.5 w-3.5', cfg.iconColor)} />
                                                     <span
-                                                        className={cn('absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-card', dot)}
+                                                        className={cn(
+                                                            'absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white',
+                                                            cfg.dot,
+                                                        )}
                                                     />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <div className="mb-0.5 flex items-center gap-2">
-                                                        <p className="truncate text-sm leading-none font-semibold text-foreground">
+                                                        <p className="truncate text-sm leading-none font-semibold text-stone-800">
                                                             {activity.guestName}
                                                         </p>
                                                         <span
                                                             className={cn(
-                                                                'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-wide uppercase',
-                                                                labelBg,
+                                                                'shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wide uppercase',
+                                                                cfg.labelStyle,
                                                             )}
                                                         >
-                                                            {label}
+                                                            {cfg.label}
                                                         </span>
                                                     </div>
-                                                    <p className="truncate text-[11px] text-muted-foreground">{activity.description}</p>
+                                                    <p className="truncate text-[11px] text-stone-400">{activity.description}</p>
                                                 </div>
-                                                <span className="shrink-0 text-[11px] text-muted-foreground">{activity.time}</span>
+                                                <span className="shrink-0 text-[11px] font-medium text-stone-400">{activity.time}</span>
                                             </div>
                                         );
                                     })}
